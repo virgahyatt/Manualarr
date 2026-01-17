@@ -22,9 +22,29 @@ class Manual(ManualBase):
     Schema for reading Manual data.
     """
     id: int
-    brand: str # Enforce str in response
-    model: str # Enforce str in response
+    brand: str
+    model: str
     filename: str
     filepath: str
 
     model_config = ConfigDict(from_attributes=True)
+
+class ManualSearchResult(BaseModel):
+    """
+    Result from external manual search.
+    """
+    source: str
+    title: str
+    identifier: str
+    filename: str
+    url: str
+    size: int
+
+class ManualImport(BaseModel):
+    """
+    Request to import a manual from a URL.
+    """
+    brand: str
+    model: str
+    url: str
+    filename: str
