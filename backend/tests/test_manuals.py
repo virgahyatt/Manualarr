@@ -5,6 +5,20 @@ import os
 
 client = TestClient(app)
 
+def test_extract_metadata_endpoint():
+    # Test the standalone extraction endpoint
+    file_content = b"%PDF-1.4 empty" 
+    file_name = "test.pdf"
+    files = {"file": (file_name, file_content, "application/pdf")}
+    
+    response = client.post("/manuals/extract-metadata", files=files)
+    
+    assert response.status_code == 200
+    json_resp = response.json()
+    # Expect None/None for invalid PDF content, but 200 OK
+    assert "brand" in json_resp
+    assert "model" in json_resp
+
 def test_upload_manual():
     # Create a dummy pdf file
     file_content = b"dummy pdf content"
@@ -22,12 +36,9 @@ def test_upload_manual():
 
 def test_upload_manual_auto_metadata():
     # Upload without brand/model
-    file_content = b"%PDF-1.4 empty pdf" # Minimal PDF header to maybe avoid immediate parser crash? 
-    # Actually pypdf will likely fail on malformed PDF, causing None/None return -> "Unknown"
-    
+    file_content = b"%PDF-1.4 empty pdf" 
     file_name = "auto_meta.pdf"
     files = {"file": (file_name, file_content, "application/pdf")}
-    # No data dict
     
     response = client.post("/manuals/", files=files)
     

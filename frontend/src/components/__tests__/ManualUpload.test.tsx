@@ -1,6 +1,6 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { Mocked } from 'vitest'
 import ManualUpload from '../ManualUpload'
 import axios from 'axios'
@@ -9,47 +9,50 @@ vi.mock('axios')
 const mockedAxios = axios as Mocked<typeof axios>
 
 describe('ManualUpload', () => {
-  it('submits the form successfully with all fields', async () => {
-    const user = userEvent.setup()
-    mockedAxios.post.mockResolvedValue({ data: { id: 1 } })
-    const onUploadSuccess = vi.fn()
-
-    const { container } = render(<ManualUpload onUploadSuccess={onUploadSuccess} />)
-
-    await user.type(screen.getByLabelText(/Brand/i), 'Sony')
-    await user.type(screen.getByLabelText(/Model/i), 'TV')
-    
-    const file = new File(['hello'], 'manual.pdf', { type: 'application/pdf' })
-    const input = screen.getByLabelText(/Select Manual/i) as HTMLInputElement
-    await user.upload(input, file)
-
-    const form = container.querySelector('form')
-    if (form) fireEvent.submit(form)
-
-    await waitFor(() => {
-      expect(mockedAxios.post).toHaveBeenCalled()
-      expect(onUploadSuccess).toHaveBeenCalled()
-    })
+  beforeEach(() => {
+    mockedAxios.post.mockReset()
   })
 
-  it('submits the form successfully with only file (auto-detect)', async () => {
+  it('extracts metadata and submits the form', async () => {
     const user = userEvent.setup()
-    mockedAxios.post.mockResolvedValue({ data: { id: 2 } })
+    
+    // Mock extraction response
+    mockedAxios.post.mockImplementation((url) => {
+      if (url === '/api/manuals/extract-metadata') {
+        return Promise.resolve({ data: { brand: 'Sony', model: 'TV-X1' } })
+      }
+      if (url === '/api/manuals/') {
+        return Promise.resolve({ data: { id: 1 } })
+      }
+      return Promise.reject(new Error('Unknown URL'))
+    })
+    
     const onUploadSuccess = vi.fn()
 
     const { container } = render(<ManualUpload onUploadSuccess={onUploadSuccess} />)
 
+    // Select file
     const file = new File(['hello'], 'manual.pdf', { type: 'application/pdf' })
     const input = screen.getByLabelText(/Select Manual/i) as HTMLInputElement
     await user.upload(input, file)
 
+    // Wait for analysis to complete and populate fields
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Brand/i)).toHaveValue('Sony')
+      expect(screen.getByLabelText(/Model/i)).toHaveValue('TV-X1')
+    })
+
+    // Submit
     const form = container.querySelector('form')
     if (form) fireEvent.submit(form)
 
     await waitFor(() => {
-      // Expect post to contain file but maybe not brand/model keys, or empty string logic
-      // Our implementation appends if (brand), so they won't be in FormData if empty.
-      expect(mockedAxios.post).toHaveBeenCalled()
+      // Verify the final upload call contains the extracted data
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringContaining('/api/manuals/'),
+        expect.any(FormData),
+        expect.any(Object)
+      )
       expect(onUploadSuccess).toHaveBeenCalled()
     })
   })

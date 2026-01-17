@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import axios from 'axios'
-import { Form, Button, Alert } from 'react-bootstrap'
+import { Form, Button, Alert, Spinner, InputGroup } from 'react-bootstrap'
 
 interface ManualUploadProps {
   onUploadSuccess: () => void
@@ -11,7 +11,59 @@ const ManualUpload: React.FC<ManualUploadProps> = ({ onUploadSuccess }) => {
   const [model, setModel] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [analyzing, setAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [analysisMessage, setAnalysisMessage] = useState<string | null>(null)
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0] || null
+    setFile(selectedFile)
+    
+    if (selectedFile) {
+      extractMetadata(selectedFile)
+    }
+  }
+
+  const extractMetadata = async (selectedFile: File) => {
+    setAnalyzing(true)
+    setAnalysisMessage(null)
+    
+    const formData = new FormData()
+    formData.append('file', selectedFile)
+
+    try {
+      const response = await axios.post('/api/manuals/extract-metadata', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      
+      const { brand: extractedBrand, model: extractedModel } = response.data
+      
+      let msg = "Analysis complete."
+      
+      if (extractedBrand) {
+        setBrand(extractedBrand)
+        msg += ` Found Brand: ${extractedBrand}.`
+      }
+      if (extractedModel) {
+        setModel(extractedModel)
+        msg += ` Found Model: ${extractedModel}.`
+      }
+      
+      if (!extractedBrand && !extractedModel) {
+        msg += " No metadata found."
+      } else {
+        msg += " Please verify."
+      }
+      
+      setAnalysisMessage(msg)
+
+    } catch (err) {
+      console.error("Metadata extraction failed", err)
+      // Don't block the user, just fail silently on auto-fill
+    } finally {
+      setAnalyzing(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,6 +89,12 @@ const ManualUpload: React.FC<ManualUploadProps> = ({ onUploadSuccess }) => {
       setBrand('')
       setModel('')
       setFile(null)
+      setAnalysisMessage(null)
+      
+      // Reset file input
+      const fileInput = document.getElementById('formFile') as HTMLInputElement
+      if (fileInput) fileInput.value = ''
+      
       onUploadSuccess()
     } catch (err) {
       setError('Failed to upload manual')
@@ -49,13 +107,26 @@ const ManualUpload: React.FC<ManualUploadProps> = ({ onUploadSuccess }) => {
   return (
     <Form onSubmit={handleSubmit} className="mb-4">
       {error && <Alert variant="danger">{error}</Alert>}
+      
+      <Form.Group className="mb-3" controlId="formFile">
+        <Form.Label>Select Manual (PDF)</Form.Label>
+        <Form.Control 
+          type="file" 
+          accept="application/pdf"
+          onChange={handleFileChange}
+          required
+        />
+        {analyzing && <Form.Text className="text-muted"><Spinner animation="border" size="sm" /> Analyzing PDF...</Form.Text>}
+        {analysisMessage && <Form.Text className="text-info d-block">{analysisMessage}</Form.Text>}
+      </Form.Group>
+
       <Form.Group className="mb-3" controlId="formBrand">
         <Form.Label>Brand</Form.Label>
         <Form.Control 
           type="text" 
           value={brand} 
           onChange={(e) => setBrand(e.target.value)} 
-          placeholder="e.g. Sony (Optional - Auto-detect)"
+          placeholder="e.g. Sony"
         />
       </Form.Group>
 
@@ -65,17 +136,7 @@ const ManualUpload: React.FC<ManualUploadProps> = ({ onUploadSuccess }) => {
           type="text" 
           value={model} 
           onChange={(e) => setModel(e.target.value)} 
-          placeholder="e.g. WH-1000XM4 (Optional - Auto-detect)"
-        />
-      </Form.Group>
-
-      <Form.Group className="mb-3" controlId="formFile">
-        <Form.Label>Select Manual (PDF)</Form.Label>
-        <Form.Control 
-          type="file" 
-          accept="application/pdf"
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFile(e.target.files?.[0] || null)}
-          required
+          placeholder="e.g. WH-1000XM4"
         />
       </Form.Group>
 

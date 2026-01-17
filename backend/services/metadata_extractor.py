@@ -3,32 +3,36 @@ from typing import Tuple, Optional
 from pypdf import PdfReader
 
 class MetadataExtractor:
-    # A small starting list of common brands. 
-    # In a real app, this might come from a database or external API.
+    # Expanded list of brands
     COMMON_BRANDS = {
         "Sony", "Samsung", "LG", "Panasonic", "Philips", "Toshiba", "Sharp",
         "Dell", "HP", "Lenovo", "Asus", "Acer", "Apple", "Microsoft",
         "Whirlpool", "GE", "Bosch", "Siemens", "Electrolux", "Maytag", "KitchenAid",
         "Dyson", "Shark", "Ninja", "Instant Pot", "Cuisinart", "Breville",
-        "Canon", "Nikon", "Brother", "Epson", "Logitech", "Razer", "Corsair"
+        "Canon", "Nikon", "Brother", "Epson", "Logitech", "Razer", "Corsair",
+        "ECO-WORTHY", "Renogy", "Victron", "Growatt", "Pylontech", "GoodWe", "SMA",
+        "Huawei", "Fronius", "SolarEdge", "Enphase"
     }
 
+    # Ordered patterns: Most specific first
     MODEL_PATTERNS = [
-        r"Model\s*[:#]?\s*([A-Za-z0-9\-]+)",
-        r"M/N\s*[:.]?\s*([A-Za-z0-9\-]+)",
+        # Explicit labels: Model: XXXXX, Model No: XXXXX
+        r"(?:Model|Mod\.|M/N)\s*[:#\.]?\s*([A-Za-z0-9\-\.]+)",
+        r"(?:Model|Mod\.|M/N)\s*[:#\.]?\s*([A-Za-z0-9]+-[A-Za-z0-9\-]+)",
         r"Series\s*([A-Za-z0-9\-]+)",
-        # Heuristic: prominent uppercase alphanumeric codes often appearing alone or with specific prefixes
-        r"\b([A-Z]{2,}[0-9]+[A-Z0-9\-]*)\b" 
+        # Heuristic: prominent uppercase alphanumeric codes (e.g., WH-1000XM4)
+        r"\b([A-Z]{2,}[-][A-Z0-9]+)\b", # Hyphenated codes like ECO-LFP...
+        r"\b([A-Z]{2,}[0-9]{3,}[A-Z0-9]*)\b" # Codes like X1000...
     ]
 
-    def extract(self, file_path: str) -> Tuple[Optional[str], Optional[str]]:
+    def extract(self, file_input) -> Tuple[Optional[str], Optional[str]]:
         """
-        Extracts Brand and Model from a PDF file.
+        Extracts Brand and Model from a PDF file (path or file-like object).
         Returns (brand, model).
         """
         try:
-            reader = PdfReader(file_path)
-            # Analyze only the first 3 pages where metadata usually lives
+            reader = PdfReader(file_input)
+            # Analyze only the first 3 pages
             text = ""
             for i in range(min(3, len(reader.pages))):
                 page_text = reader.pages[i].extract_text()
@@ -47,12 +51,14 @@ class MetadataExtractor:
 
     def _find_brand(self, text: str) -> Optional[str]:
         # Simple case-insensitive match against known brands
-        # We prioritize the first one found, or maybe the most frequent?
-        # Let's return the first one found in the text for now.
         text_lower = text.lower()
-        for brand in self.COMMON_BRANDS:
+        # Sort brands by length (descending) to match "ECO-WORTHY" before "ECO" if both existed
+        sorted_brands = sorted(self.COMMON_BRANDS, key=len, reverse=True)
+        
+        for brand in sorted_brands:
             if brand.lower() in text_lower:
-                # Basic check: ensure it's a whole word match
+                # Use word boundary check
+                # Escape the brand string for regex (handles hyphens etc)
                 pattern = r"\b" + re.escape(brand.lower()) + r"\b"
                 if re.search(pattern, text_lower):
                     return brand
@@ -60,7 +66,13 @@ class MetadataExtractor:
 
     def _find_model(self, text: str) -> Optional[str]:
         for pattern in self.MODEL_PATTERNS:
+            # Search line by line or full text? 
+            # Full text is better for multi-line but regex assumes single line usually.
+            # Let's try searching the whole block.
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
-                return match.group(1)
+                # Filter out likely bad matches (e.g. too short, common words)
+                candidate = match.group(1).strip()
+                if len(candidate) > 2 and candidate.lower() not in ["manual", "guide", "version"]:
+                    return candidate
         return None

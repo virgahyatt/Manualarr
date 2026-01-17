@@ -1,9 +1,10 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 import os
 import shutil
+from io import BytesIO
 
 from database import engine, get_db
 from services.metadata_extractor import MetadataExtractor
@@ -35,6 +36,35 @@ app.mount("/files", StaticFiles(directory=UPLOAD_DIR), name="files")
 # Initialize extractor
 extractor = MetadataExtractor()
 
+@app.post("/manuals/extract-metadata")
+async def extract_metadata(file: UploadFile = File(...)):
+    """
+    Extract metadata from an uploaded PDF without saving it permanently.
+    Returns suggested brand and model.
+    """
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Filename is missing")
+    
+    # Read file content into memory/temp
+    content = await file.read()
+    file_obj = BytesIO(content)
+    
+    # Extract
+    # We need to adapt extract to accept file-like object or path
+    # Currently it takes a path string. I should update MetadataExtractor.
+    # For now, I'll write to a temp file if I don't update Extractor, 
+    # but updating Extractor to take file_like is better.
+    
+    # Let's check Extractor implementation. It uses PdfReader(file_path). 
+    # PdfReader also accepts file objects.
+    
+    try:
+        brand, model = extractor.extract(file_obj)
+        return {"brand": brand, "model": model}
+    except Exception as e:
+        print(f"Extraction error: {e}")
+        return {"brand": None, "model": None}
+
 @app.post("/manuals/", response_model=schemas.Manual, status_code=201)
 def create_manual(
     brand: Optional[str] = Form(None),
@@ -53,7 +83,7 @@ def create_manual(
     with open(file_location, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # Auto-extraction if fields are missing
+    # Auto-extraction if fields are missing (Fallback)
     if not brand or not model:
         extracted_brand, extracted_model = extractor.extract(file_location)
         if not brand:
