@@ -28,7 +28,12 @@ describe('ManualUpload', () => {
     if (form) fireEvent.submit(form)
 
     await waitFor(() => {
-      expect(mockedAxios.post).toHaveBeenCalled()
+      // Expect the post call to use the relative path
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringContaining('/api/manuals/'),
+        expect.any(FormData),
+        expect.any(Object)
+      )
       expect(onUploadSuccess).toHaveBeenCalled()
     })
   })

@@ -11,6 +11,12 @@ from database import engine, get_db
 import models
 import schemas
 
+# Ensure database directory exists if using SQLite with a path
+if engine.url.drivername == 'sqlite':
+    db_path = engine.url.database
+    if db_path and db_path != ':memory:':
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 

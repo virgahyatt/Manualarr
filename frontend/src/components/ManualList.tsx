@@ -18,7 +18,7 @@ const ManualList: React.FC = () => {
   useEffect(() => {
     const fetchManuals = async () => {
       try {
-        const response = await axios.get<Manual[]>('http://localhost:8000/manuals/')
+        const response = await axios.get<Manual[]>('/api/manuals/')
         setManuals(response.data)
       } catch (err) {
         setError('Failed to fetch manuals')

@@ -29,7 +29,7 @@ const ManualUpload: React.FC<ManualUploadProps> = ({ onUploadSuccess }) => {
     formData.append('file', file)
 
     try {
-      await axios.post('http://localhost:8000/manuals/', formData, {
+      await axios.post('/api/manuals/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
