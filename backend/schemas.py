@@ -1,14 +1,15 @@
 """
 Pydantic schemas for API data validation and serialization.
 """
+from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 class ManualBase(BaseModel):
     """
     Base schema for Manual data.
     """
-    brand: str
-    model: str
+    brand: Optional[str] = None
+    model: Optional[str] = None
 
 class ManualCreate(ManualBase):
     """
@@ -21,6 +22,8 @@ class Manual(ManualBase):
     Schema for reading Manual data.
     """
     id: int
+    brand: str # Enforce str in response
+    model: str # Enforce str in response
     filename: str
     filepath: str
 

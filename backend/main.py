@@ -1,11 +1,12 @@
+from typing import List, Optional
 from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 import os
 import shutil
-from typing import List
 
 from database import engine, get_db
+from services.metadata_extractor import MetadataExtractor
 import models
 import schemas
 
@@ -31,15 +32,19 @@ else:
 # Mount the uploads directory to serve files
 app.mount("/files", StaticFiles(directory=UPLOAD_DIR), name="files")
 
+# Initialize extractor
+extractor = MetadataExtractor()
+
 @app.post("/manuals/", response_model=schemas.Manual, status_code=201)
 def create_manual(
-    brand: str = Form(...),
-    model: str = Form(...),
+    brand: Optional[str] = Form(None),
+    model: Optional[str] = Form(None),
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
     """
     Upload a new manual PDF and save metadata to the database.
+    If brand/model are not provided, attempts to extract them from the PDF.
     """
     if not file.filename:
         raise HTTPException(status_code=400, detail="Filename is missing")
@@ -47,6 +52,14 @@ def create_manual(
     file_location = os.path.join(UPLOAD_DIR, file.filename)
     with open(file_location, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+
+    # Auto-extraction if fields are missing
+    if not brand or not model:
+        extracted_brand, extracted_model = extractor.extract(file_location)
+        if not brand:
+            brand = extracted_brand or "Unknown"
+        if not model:
+            model = extracted_model or "Unknown"
 
     db_manual = models.Manual(
         brand=brand,

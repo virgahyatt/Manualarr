@@ -24,8 +24,8 @@ const ManualUpload: React.FC<ManualUploadProps> = ({ onUploadSuccess }) => {
     setError(null)
 
     const formData = new FormData()
-    formData.append('brand', brand)
-    formData.append('model', model)
+    if (brand) formData.append('brand', brand)
+    if (model) formData.append('model', model)
     formData.append('file', file)
 
     try {
@@ -55,8 +55,7 @@ const ManualUpload: React.FC<ManualUploadProps> = ({ onUploadSuccess }) => {
           type="text" 
           value={brand} 
           onChange={(e) => setBrand(e.target.value)} 
-          required 
-          placeholder="e.g. Sony"
+          placeholder="e.g. Sony (Optional - Auto-detect)"
         />
       </Form.Group>
 
@@ -66,8 +65,7 @@ const ManualUpload: React.FC<ManualUploadProps> = ({ onUploadSuccess }) => {
           type="text" 
           value={model} 
           onChange={(e) => setModel(e.target.value)} 
-          required 
-          placeholder="e.g. WH-1000XM4"
+          placeholder="e.g. WH-1000XM4 (Optional - Auto-detect)"
         />
       </Form.Group>
 
