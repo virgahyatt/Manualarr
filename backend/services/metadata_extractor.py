@@ -54,7 +54,7 @@ class MetadataExtractor:
         text = unicodedata.normalize("NFKC", text)
         
         brand = self._find_brand(text)
-        model = self._find_model(text)
+        model = self._find_model(text, exclude=brand)
         return brand, model
 
     def _find_brand(self, text: str) -> Optional[str]:
@@ -71,12 +71,15 @@ class MetadataExtractor:
                     return brand
         return None
 
-    def _find_model(self, text: str) -> Optional[str]:
+    def _find_model(self, text: str, exclude: Optional[str] = None) -> Optional[str]:
         for pattern in self.MODEL_PATTERNS:
             matches = re.finditer(pattern, text, re.IGNORECASE)
             for match in matches:
                 candidate = match.group(1).strip()
                 # Validation
                 if len(candidate) > 2 and candidate.upper() not in self.IGNORE_TERMS:
+                    # Exclude if it's the brand name (case insensitive)
+                    if exclude and candidate.lower() == exclude.lower():
+                        continue
                     return candidate
         return None
