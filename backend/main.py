@@ -11,6 +11,7 @@ from database import engine, get_db, init_fts, SessionLocal
 from services.metadata_extractor import MetadataExtractor
 from services.discovery_service import DiscoveryService
 from services.indexer import IndexerService
+from services.product_lookup import ProductLookupService
 import models
 import schemas
 
@@ -42,6 +43,17 @@ app.mount("/files", StaticFiles(directory=UPLOAD_DIR), name="files")
 extractor = MetadataExtractor()
 discovery_service = DiscoveryService()
 indexer = IndexerService()
+product_lookup = ProductLookupService()
+
+@app.get("/products/lookup")
+def lookup_product(barcode: str = Query(...)):
+    """
+    Lookup product metadata by barcode.
+    """
+    brand, model = product_lookup.lookup(barcode)
+    if not brand and not model:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return {"brand": brand, "model": model}
 
 @app.post("/manuals/extract-metadata")
 async def extract_metadata(file: UploadFile = File(...)):

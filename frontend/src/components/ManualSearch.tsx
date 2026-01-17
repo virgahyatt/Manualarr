@@ -13,12 +13,20 @@ interface SearchResult {
 
 interface ManualSearchProps {
   onImportSuccess: () => void
+  initialBrand?: string
+  initialModel?: string
 }
 
-const ManualSearch: React.FC<ManualSearchProps> = ({ onImportSuccess }) => {
-  const [brand, setBrand] = useState('')
-  const [model, setModel] = useState('')
+const ManualSearch: React.FC<ManualSearchProps> = ({ onImportSuccess, initialBrand = '', initialModel = '' }) => {
+  const [brand, setBrand] = useState(initialBrand)
+  const [model, setModel] = useState(initialModel)
   const [results, setResults] = useState<SearchResult[]>([])
+  
+  // Update state if props change (e.g. from barcode scan)
+  React.useEffect(() => {
+      if (initialBrand) setBrand(initialBrand)
+      if (initialModel) setModel(initialModel)
+  }, [initialBrand, initialModel])
   const [searching, setSearching] = useState(false)
   const [importing, setImporting] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
