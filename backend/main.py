@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 import os
 import shutil
 from io import BytesIO
+from urllib.parse import urlparse, unquote
 
 from database import engine, get_db
 from services.metadata_extractor import MetadataExtractor
@@ -71,12 +72,16 @@ def import_manual(request: schemas.ManualImport, db: Session = Depends(get_db)):
     Import a manual from a URL.
     """
     # Create filename
-    # Sanitize brand/model for filename? Or just use the original filename?
-    # Original filename is safer but might be "manual.pdf" repeatedly.
-    # Let's prefix with brand_model if possible, but request.filename usually comes from the search result.
-    
-    # Ensure unique filename to avoid overwrites
-    base_name = os.path.basename(request.filename)
+    if request.filename:
+        base_name = os.path.basename(request.filename)
+    else:
+        # Derive from URL
+        parsed = urlparse(request.url)
+        path = unquote(parsed.path)
+        base_name = os.path.basename(path)
+        if not base_name or not base_name.lower().endswith('.pdf'):
+            base_name = "manual_download.pdf"
+
     name, ext = os.path.splitext(base_name)
     counter = 1
     target_filename = base_name
@@ -91,10 +96,21 @@ def import_manual(request: schemas.ManualImport, db: Session = Depends(get_db)):
     if not success:
         raise HTTPException(status_code=400, detail="Failed to download manual")
     
+    # Auto-extract if missing metadata
+    final_brand = request.brand
+    final_model = request.model
+    
+    if not final_brand or not final_model:
+        extracted_brand, extracted_model = extractor.extract(dest_path)
+        if not final_brand:
+            final_brand = extracted_brand or "Unknown"
+        if not final_model:
+            final_model = extracted_model or "Unknown"
+
     # Save to DB
     db_manual = models.Manual(
-        brand=request.brand,
-        model=request.model,
+        brand=final_brand,
+        model=final_model,
         filename=target_filename,
         filepath=dest_path
     )

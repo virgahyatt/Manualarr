@@ -44,7 +44,7 @@ class ManualImport(BaseModel):
     """
     Request to import a manual from a URL.
     """
-    brand: str
-    model: str
+    brand: Optional[str] = None
+    model: Optional[str] = None
     url: str
-    filename: str
+    filename: Optional[str] = None # Optional, can be derived from URL

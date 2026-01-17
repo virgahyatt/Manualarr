@@ -3,6 +3,7 @@ import { Container, Navbar, Row, Col, Tabs, Tab } from 'react-bootstrap'
 import ManualUpload from './components/ManualUpload'
 import ManualList from './components/ManualList'
 import ManualSearch from './components/ManualSearch'
+import ManualImportUrl from './components/ManualImportUrl'
 import 'bootstrap/dist/css/bootstrap.min.css'
 
 function App() {
@@ -30,6 +31,9 @@ function App() {
               </Tab>
               <Tab eventKey="search" title="Search Online">
                 <ManualSearch onImportSuccess={handleSuccess} />
+              </Tab>
+              <Tab eventKey="import" title="Direct Link">
+                <ManualImportUrl onImportSuccess={handleSuccess} />
               </Tab>
             </Tabs>
           </Col>
