@@ -3,6 +3,9 @@
 .env
 *.log
 
+# Project specific
+new-app.md
+
 # Python
 __pycache__/
 *.py[cod]
