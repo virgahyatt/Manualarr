@@ -5,6 +5,7 @@ import os
 import shutil
 from typing import List
 from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
 from database import engine, get_db
@@ -23,7 +24,15 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI(title="Manualarr API")
 
 UPLOAD_DIR = "backend/uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+# In Docker, this might be just "uploads" relative to WORKDIR /app
+if os.path.exists("uploads"):
+    UPLOAD_DIR = "uploads"
+else:
+    # Fallback for local dev if not running in docker or different structure
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# Mount the uploads directory to serve files
+app.mount("/files", StaticFiles(directory=UPLOAD_DIR), name="files")
 
 @app.post("/manuals/", response_model=schemas.Manual, status_code=201)
 def create_manual(

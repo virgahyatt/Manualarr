@@ -41,8 +41,15 @@ const ManualList: React.FC = () => {
   return (
     <ListGroup>
       {manuals.map((manual) => (
-        <ListGroup.Item key={manual.id}>
-          <strong>{manual.brand} - {manual.model}</strong> ({manual.filename})
+        <ListGroup.Item key={manual.id} action>
+          <a 
+            href={`/api/files/${encodeURIComponent(manual.filename)}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+          >
+            <strong>{manual.brand} - {manual.model}</strong> ({manual.filename})
+          </a>
         </ListGroup.Item>
       ))}
     </ListGroup>

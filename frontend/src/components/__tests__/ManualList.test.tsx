@@ -18,8 +18,11 @@ describe('ManualList', () => {
     render(<ManualList />)
 
     await waitFor(() => {
-      expect(screen.getByText('Sony - TV')).toBeInTheDocument()
-      expect(screen.getByText('Dell - Monitor')).toBeInTheDocument()
+      const link1 = screen.getByText('Sony - TV').closest('a')
+      expect(link1).toHaveAttribute('href', '/api/files/manual.pdf')
+      
+      const link2 = screen.getByText('Dell - Monitor').closest('a')
+      expect(link2).toHaveAttribute('href', '/api/files/monitor.pdf')
     })
   })
 
