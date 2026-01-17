@@ -1,5 +1,5 @@
-from typing import List, Optional, Dict
-from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, Query
+from typing import List, Optional, Dict, Any
+from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, Query, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 import os
@@ -7,9 +7,10 @@ import shutil
 from io import BytesIO
 from urllib.parse import urlparse, unquote
 
-from database import engine, get_db
+from database import engine, get_db, init_fts, SessionLocal
 from services.metadata_extractor import MetadataExtractor
 from services.discovery_service import DiscoveryService
+from services.indexer import IndexerService
 import models
 import schemas
 
@@ -21,6 +22,8 @@ if engine.url.drivername == 'sqlite':
 
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
+# Initialize FTS
+init_fts(engine)
 
 app = FastAPI(title="Manualarr API")
 
@@ -38,6 +41,7 @@ app.mount("/files", StaticFiles(directory=UPLOAD_DIR), name="files")
 # Initialize services
 extractor = MetadataExtractor()
 discovery_service = DiscoveryService()
+indexer = IndexerService()
 
 @app.post("/manuals/extract-metadata")
 async def extract_metadata(file: UploadFile = File(...)):
@@ -67,7 +71,7 @@ def search_manuals(brand: str = Query(...), model: str = Query(...)):
     return discovery_service.search(brand, model)
 
 @app.post("/manuals/import", response_model=schemas.Manual, status_code=201)
-def import_manual(request: schemas.ManualImport, db: Session = Depends(get_db)):
+def import_manual(request: schemas.ManualImport, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Import a manual from a URL.
     """
@@ -117,10 +121,15 @@ def import_manual(request: schemas.ManualImport, db: Session = Depends(get_db)):
     db.add(db_manual)
     db.commit()
     db.refresh(db_manual)
+    
+    # Trigger indexing
+    background_tasks.add_task(indexer_task, db_manual.id, dest_path)
+    
     return db_manual
 
 @app.post("/manuals/", response_model=schemas.Manual, status_code=201)
 def create_manual(
+    background_tasks: BackgroundTasks,
     brand: Optional[str] = Form(None),
     model: Optional[str] = Form(None),
     file: UploadFile = File(...),
@@ -154,7 +163,19 @@ def create_manual(
     db.add(db_manual)
     db.commit()
     db.refresh(db_manual)
+    
+    # Trigger indexing
+    background_tasks.add_task(indexer_task, db_manual.id, file_location)
+    
     return db_manual
+
+def indexer_task(manual_id: int, filepath: str):
+    # Need a new DB session for background task
+    db = SessionLocal()
+    try:
+        indexer.index_manual(db, manual_id, filepath)
+    finally:
+        db.close()
 
 @app.get("/manuals/", response_model=List[schemas.Manual])
 def list_manuals(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -173,6 +194,9 @@ def delete_manual(manual_id: int, db: Session = Depends(get_db)):
     if not manual:
         raise HTTPException(status_code=404, detail="Manual not found")
     
+    # Delete index
+    indexer.delete_manual_index(db, manual_id)
+    
     # Delete file from disk
     if os.path.exists(manual.filepath):
         try:
@@ -183,3 +207,18 @@ def delete_manual(manual_id: int, db: Session = Depends(get_db)):
     db.delete(manual)
     db.commit()
     return {"message": "Manual deleted successfully"}
+
+@app.get("/search/context")
+def search_context(
+    q: str = Query(..., min_length=3),
+    brand: Optional[str] = Query(None),
+    model: Optional[str] = Query(None),
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    """
+    Search manual content for LLM context retrieval.
+    Returns snippets of matching text.
+    """
+    results = indexer.search(db, q, brand, model, limit)
+    return results

@@ -2,7 +2,7 @@
 Database configuration and session management.
 """
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 # Use environment variable or default to local file
@@ -25,3 +25,18 @@ def get_db():
         yield db
     finally:
         db.close()
+
+# Initialize FTS table
+def init_fts(db_engine):
+    with db_engine.connect() as conn:
+        # Create FTS table for full-text search
+        # manual_id and page_number are unindexed (stored but not searchable themselves via FTS match syntax effectively, or just kept for reference)
+        conn.execute(text("""
+            CREATE VIRTUAL TABLE IF NOT EXISTS manual_fts USING fts5(
+                manual_id UNINDEXED, 
+                page_number UNINDEXED, 
+                content
+            );
+        """))
+        # Create trigger to clean up FTS when manual is deleted?
+        # SQLite FTS doesn't support foreign keys. We handle deletion manually in service.
