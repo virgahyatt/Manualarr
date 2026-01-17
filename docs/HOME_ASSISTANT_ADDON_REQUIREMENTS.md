@@ -11,7 +11,7 @@ Package Manualarr as an all-in-one Home Assistant add-on that allows users to:
 
 - **Easy installation**: Single add-on install from HACS or community add-on repository
 - **Zero configuration**: Works out of the box with sensible defaults
-- **LLM integration**: Automatically registers as a conversation agent tool
+- **LLM integration**: Provides config templates for popular AI assistants
 - **Resource efficient**: Suitable for Raspberry Pi 4+ deployments
 
 ## Architecture
@@ -176,6 +176,190 @@ GET /api/search/context?q=temperature+limit&brand=Eco-Spa&limit=5
 ]
 ```
 
+## AI Assistant Configuration Templates
+
+The add-on provides ready-to-use configuration templates for popular Home Assistant AI assistants. Users copy the appropriate config into their assistant setup.
+
+### Extended OpenAI Conversation (HACS)
+
+Works with OpenAI, Azure OpenAI, and OpenAI-compatible APIs (Ollama, LocalAI, etc.)
+
+```yaml
+# Add to Extended OpenAI Conversation configuration
+functions:
+  - spec:
+      name: search_manuals
+      description: >-
+        Search product manuals for specifications, instructions, troubleshooting,
+        or any other information. Use this when the user asks about their devices,
+        appliances, equipment, or products they own.
+      parameters:
+        type: object
+        properties:
+          query:
+            type: string
+            description: >-
+              Search terms to find in manuals (e.g., "max temperature",
+              "error code E3", "installation steps", "warranty period")
+          brand:
+            type: string
+            description: >-
+              Optional brand filter (e.g., "ECO-WORTHY", "Eco-Spa", "Samsung")
+          model:
+            type: string
+            description: >-
+              Optional model number filter (e.g., "E3", "ECO-LFP4810002")
+        required:
+          - query
+    function:
+      type: rest
+      resource: http://homeassistant.local:8081/api/search/context
+      method: GET
+      value_template: >-
+        {% set params = {"q": query, "limit": 5} %}
+        {% if brand is defined and brand %}{% set _ = params.update({"brand": brand}) %}{% endif %}
+        {% if model is defined and model %}{% set _ = params.update({"model": model}) %}{% endif %}
+        {{ params | to_json }}
+```
+
+### Google Generative AI Conversation
+
+For Google Gemini models with function calling support.
+
+```yaml
+# configuration.yaml
+conversation:
+  - platform: google_generative_ai_conversation
+    # ... other config ...
+
+# Note: Google Generative AI integration requires custom component
+# modification to add external tool support. See docs for workaround
+# using a script + REST command approach below.
+```
+
+**Alternative using Scripts + REST:**
+
+```yaml
+# configuration.yaml
+rest_command:
+  search_manuals:
+    url: "http://homeassistant.local:8081/api/search/context"
+    method: GET
+    query_params:
+      q: "{{ query }}"
+      brand: "{{ brand | default('') }}"
+      model: "{{ model | default('') }}"
+      limit: 5
+    content_type: "application/json"
+
+# Expose as a script the assistant can reference in prompts
+script:
+  search_product_manuals:
+    alias: "Search Product Manuals"
+    description: "Search indexed product manuals for information"
+    fields:
+      query:
+        description: "Search terms"
+        required: true
+        selector:
+          text:
+      brand:
+        description: "Brand filter (optional)"
+        selector:
+          text:
+    sequence:
+      - service: rest_command.search_manuals
+        data:
+          query: "{{ query }}"
+          brand: "{{ brand | default('') }}"
+```
+
+### Ollama / Local LLM (via Open WebUI or LLM integration)
+
+For local models running via Ollama.
+
+```yaml
+# If using Extended OpenAI Conversation pointed at Ollama:
+# Use the Extended OpenAI Conversation config above with base_url:
+#   base_url: http://localhost:11434/v1
+
+# If using Home Assistant Ollama integration directly,
+# function calling support depends on the model. Models that
+# support tools include:
+#   - llama3.1 (8B, 70B)
+#   - mistral (with function calling)
+#   - command-r
+#
+# Configure using Extended OpenAI Conversation template above.
+```
+
+### OpenAI Conversation (Built-in)
+
+The built-in OpenAI Conversation integration has limited tool support. Recommended approach is to use Extended OpenAI Conversation (HACS) instead for full function calling.
+
+```yaml
+# For basic integration without function calling,
+# add context about available manuals to the system prompt:
+
+conversation:
+  - platform: openai_conversation
+    api_key: !secret openai_api_key
+    # Add manual awareness to prompt
+    prompt: >-
+      You are a helpful home assistant. The user has product manuals
+      indexed in their Manualarr system. If they ask about product
+      specifications or instructions, tell them you'll check their
+      manuals and suggest they ask: "Search my manuals for [topic]"
+
+      Available manuals can be searched at:
+      http://homeassistant.local:8081
+```
+
+### Custom LLM / Other Assistants
+
+For any assistant that supports HTTP/REST tool calling:
+
+**Endpoint:** `GET /api/search/context`
+
+**Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `q` | string | Yes | Search query |
+| `brand` | string | No | Filter by brand |
+| `model` | string | No | Filter by model |
+| `limit` | int | No | Max results (default: 10) |
+
+**Example Request:**
+```bash
+curl "http://homeassistant.local:8081/api/search/context?q=max+temperature&brand=Eco-Spa&limit=5"
+```
+
+**Example Response:**
+```json
+[
+  {
+    "manual_id": 2,
+    "brand": "Eco-Spa",
+    "model": "E3",
+    "filename": "ECO-SPA-MANUAL.pdf",
+    "page_number": 16,
+    "snippet": "...temperature Set Point limit has been preset at the factory to not exceed 104°F (40°C)..."
+  }
+]
+```
+
+**Tool Description for LLM:**
+```
+Use this tool to search the user's product manual library. Returns relevant
+excerpts from PDF manuals including the page number and context. Call this
+when users ask about:
+- Product specifications (dimensions, capacity, power ratings)
+- Operating instructions or procedures
+- Safety warnings or limits
+- Troubleshooting or error codes
+- Warranty or maintenance information
+```
+
 ## Resource Requirements
 
 ### Minimum
@@ -202,12 +386,12 @@ GET /api/search/context?q=temperature+limit&brand=Eco-Spa&limit=5
 - [ ] Ingress support for web UI
 - [ ] Persistent storage for database and PDFs
 
-### Phase 2: Conversation Integration
-- [ ] Research HA conversation agent tool registration
-- [ ] Implement tool registration on add-on startup
-- [ ] Test with Extended OpenAI Conversation
-- [ ] Test with local LLM (Ollama)
-- [ ] Test with Google Generative AI
+### Phase 2: Assistant Configuration Templates
+- [ ] Create Extended OpenAI Conversation template
+- [ ] Create Google Generative AI workaround template
+- [ ] Create Ollama/local LLM template
+- [ ] Test each template with real assistant setup
+- [ ] Document template usage in DOCS.md
 
 ### Phase 3: Polish
 - [ ] Add-on icon and branding
@@ -232,19 +416,25 @@ manualarr-ha-addon/
 │   ├── icon.png
 │   ├── logo.png
 │   └── DOCS.md
+├── assistant-configs/        # Ready-to-use config templates
+│   ├── README.md            # Which template to use
+│   ├── extended-openai-conversation.yaml
+│   ├── google-generative-ai.yaml
+│   ├── ollama-local-llm.yaml
+│   └── generic-rest-tool.md
 ├── repository.yaml          # Add-on repository metadata
 └── README.md
 ```
 
 ## Open Questions
 
-1. **Conversation agent registration**: How to programmatically register tools with HA's conversation system? May require a companion custom component.
+1. **Authentication**: Should the API require authentication when accessed outside of ingress?
 
-2. **Authentication**: Should the API require authentication when accessed outside of ingress?
+2. **Multi-instance**: Support for multiple Manualarr instances (e.g., per-user manual libraries)?
 
-3. **Multi-instance**: Support for multiple Manualarr instances (e.g., per-user manual libraries)?
+3. **Backup integration**: Include database in HA backups automatically?
 
-4. **Backup integration**: Include database in HA backups automatically?
+4. **Template updates**: How to notify users when assistant config templates are updated? Consider versioning templates.
 
 ## References
 
