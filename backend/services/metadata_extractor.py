@@ -1,5 +1,7 @@
 import re
-from typing import Tuple, Optional
+import unicodedata
+from typing import Tuple, Optional, Any, Union
+from io import IOBase
 from pypdf import PdfReader
 
 class MetadataExtractor:
@@ -24,8 +26,11 @@ class MetadataExtractor:
         r"\b([A-Z]{2,}[-][A-Z0-9]+)\b", # Hyphenated codes like ECO-LFP...
         r"\b([A-Z]{2,}[0-9]{3,}[A-Z0-9]*)\b" # Codes like X1000...
     ]
+    
+    # Terms to ignore if found as model (false positives)
+    IGNORE_TERMS = {"LIFEPO4", "BATTERY", "MANUAL", "LITHIUM", "V1.0", "V2.0", "VERSION"}
 
-    def extract(self, file_input) -> Tuple[Optional[str], Optional[str]]:
+    def extract(self, file_input: Union[str, IOBase]) -> Tuple[Optional[str], Optional[str]]:
         """
         Extracts Brand and Model from a PDF file (path or file-like object).
         Returns (brand, model).
@@ -45,6 +50,9 @@ class MetadataExtractor:
             return None, None
 
     def _analyze_text(self, text: str) -> Tuple[Optional[str], Optional[str]]:
+        # Normalize text to handle full-width characters (e.g. ： -> :)
+        text = unicodedata.normalize("NFKC", text)
+        
         brand = self._find_brand(text)
         model = self._find_model(text)
         return brand, model
@@ -58,7 +66,6 @@ class MetadataExtractor:
         for brand in sorted_brands:
             if brand.lower() in text_lower:
                 # Use word boundary check
-                # Escape the brand string for regex (handles hyphens etc)
                 pattern = r"\b" + re.escape(brand.lower()) + r"\b"
                 if re.search(pattern, text_lower):
                     return brand
@@ -66,13 +73,10 @@ class MetadataExtractor:
 
     def _find_model(self, text: str) -> Optional[str]:
         for pattern in self.MODEL_PATTERNS:
-            # Search line by line or full text? 
-            # Full text is better for multi-line but regex assumes single line usually.
-            # Let's try searching the whole block.
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match:
-                # Filter out likely bad matches (e.g. too short, common words)
+            matches = re.finditer(pattern, text, re.IGNORECASE)
+            for match in matches:
                 candidate = match.group(1).strip()
-                if len(candidate) > 2 and candidate.lower() not in ["manual", "guide", "version"]:
+                # Validation
+                if len(candidate) > 2 and candidate.upper() not in self.IGNORE_TERMS:
                     return candidate
         return None

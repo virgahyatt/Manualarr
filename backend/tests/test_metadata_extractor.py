@@ -17,9 +17,20 @@ def test_find_model(extractor):
     text = "Model: WH-1000XM4"
     assert extractor._find_model(text) == "WH-1000XM4"
 
-    text_eco = "(Model: ECO-LFP4810002)"
+    text_eco = "（Model: ECO-LFP4810002）"
     assert extractor._find_model(text_eco) == "ECO-LFP4810002"
+
+    text_fw_colon = "Model： ECO-LFP4810002"
+    assert extractor._find_model(text_fw_colon) == "ECO-LFP4810002"
+
+    # Full-width text which NFKC normalizes to "Model"
+    text_fw_model = "Ｍｏｄｅｌ： ECO-LFP4810002"
+    assert extractor._find_model(text_fw_model) == "ECO-LFP4810002"
     
+    # Test ignore list
+    text_lifepo = "LiFePO4"
+    assert extractor._find_model(text_lifepo) is None
+
     text_mn = "M/N: XPS-13-9310"
     assert extractor._find_model(text_mn) == "XPS-13-9310"
 
