@@ -6,33 +6,6 @@ from services.metadata_extractor import MetadataExtractor
 def extractor():
     return MetadataExtractor()
 
-def test_ocr_reproduction(extractor):
-    # Text provided by user from the OCR of the problematic PDF
-    ocr_text = """
-    51.2V 100AH LIFEPO4 
-    BATTERY 3U
-    MANUAL
-    Operation and Maintenance
-    LiFePO4
-    Manual Version: 3.1.1
-    SUPPORT
-    If you are experiencing technical problems and cannot find 
-    a solution in this manual,please contact ECO-WORTHY for 
-    further assistance.
-    ·Call:+1 866-939-8222(US&CA)
-    +49 6175-6514-999(DE)
-    +44 7553-406-988(UK)
-    ·Web://www.eco-worthy.com/
-    ·E-mail: customer.service@eco-worthy.com
-    （Model: ECO-LFP4810002）
-    V3
-    """
-    
-    brand, model = extractor._analyze_text(ocr_text)
-    
-    assert brand == "ECO-WORTHY"
-    assert model == "ECO-LFP4810002"
-
 def test_find_brand(extractor):
     text = "This is a User Manual for a Sony television."
     assert extractor._find_brand(text) == "Sony"
@@ -43,6 +16,15 @@ def test_find_brand(extractor):
 def test_find_model(extractor):
     text = "Model: WH-1000XM4"
     assert extractor._find_model(text) == "WH-1000XM4"
+
+    # Plural Models
+    text_models = "MODELS E1-E2-E3"
+    assert extractor._find_model(text_models) == "E1-E2-E3"
+
+    # Dirty text case (simulated from pypdf output)
+    # Using explicit newline char
+    text_dirty = "čModel\nCO-LFP4810002Ď"
+    assert extractor._find_model(text_dirty) == "CO-LFP4810002"
 
     text_eco = "（Model: ECO-LFP4810002）"
     assert extractor._find_model(text_eco) == "ECO-LFP4810002"

@@ -13,14 +13,15 @@ class MetadataExtractor:
         "Dyson", "Shark", "Ninja", "Instant Pot", "Cuisinart", "Breville",
         "Canon", "Nikon", "Brother", "Epson", "Logitech", "Razer", "Corsair",
         "ECO-WORTHY", "Renogy", "Victron", "Growatt", "Pylontech", "GoodWe", "SMA",
-        "Huawei", "Fronius", "SolarEdge", "Enphase"
+        "Huawei", "Fronius", "SolarEdge", "Enphase", "Fusion Pacific", "GECKO"
     }
 
     # Ordered patterns: Most specific first
     MODEL_PATTERNS = [
-        # Explicit labels: Model: XXXXX, Model No: XXXXX
-        r"(?:Model|Mod\.|M/N)\s*[:#\.]?\s*([A-Za-z0-9\-\.]+)",
-        r"(?:Model|Mod\.|M/N)\s*[:#\.]?\s*([A-Za-z0-9]+-[A-Za-z0-9\-]+)",
+        # Explicit labels: Model: XXXXX, Model No: XXXXX, Models: XXXXX
+        # Added s? for Models
+        r"(?:Models?|Mod\.|M/N)\s*[:#\.]?\s*([A-Za-z0-9\-\.]+)",
+        r"(?:Models?|Mod\.|M/N)\s*[:#\.]?\s*([A-Za-z0-9]+-[A-Za-z0-9\-]+)",
         r"Series\s*([A-Za-z0-9\-]+)",
         # Heuristic: prominent uppercase alphanumeric codes (e.g., WH-1000XM4)
         r"\b([A-Z]{2,}[-][A-Z0-9]+)\b", # Hyphenated codes like ECO-LFP...
@@ -28,7 +29,7 @@ class MetadataExtractor:
     ]
     
     # Terms to ignore if found as model (false positives)
-    IGNORE_TERMS = {"LIFEPO4", "BATTERY", "MANUAL", "LITHIUM", "V1.0", "V2.0", "VERSION"}
+    IGNORE_TERMS = {"LIFEPO4", "BATTERY", "MANUAL", "LITHIUM", "V1.0", "V2.0", "VERSION", "OWNER", "INSTRUCTIONS", "SAFETY"}
 
     def extract(self, file_input: Union[str, IOBase]) -> Tuple[Optional[str], Optional[str]]:
         """
@@ -76,10 +77,17 @@ class MetadataExtractor:
             matches = re.finditer(pattern, text, re.IGNORECASE)
             for match in matches:
                 candidate = match.group(1).strip()
+                # Clean up punctuation at end if captured (like dot)
+                candidate = candidate.rstrip(".")
+                
                 # Validation
                 if len(candidate) > 2 and candidate.upper() not in self.IGNORE_TERMS:
-                    # Exclude if it's the brand name (case insensitive)
+                    # Check against exclude
                     if exclude and candidate.lower() == exclude.lower():
                         continue
+                    # Ignore underscores (blank lines)
+                    if "_" in candidate:
+                        continue
+                        
                     return candidate
         return None
