@@ -1,8 +1,8 @@
 import re
 import unicodedata
 from typing import Tuple, Optional, Any, Union
-from io import IOBase
-from pypdf import PdfReader
+from io import IOBase, BytesIO
+import pymupdf
 
 class MetadataExtractor:
     # Expanded list of brands
@@ -19,7 +19,6 @@ class MetadataExtractor:
     # Ordered patterns: Most specific first
     MODEL_PATTERNS = [
         # Explicit labels: Model: XXXXX, Model No: XXXXX, Models: XXXXX
-        # Added s? for Models
         r"(?:Models?|Mod\.|M/N)\s*[:#\.]?\s*([A-Za-z0-9\-\.]+)",
         r"(?:Models?|Mod\.|M/N)\s*[:#\.]?\s*([A-Za-z0-9]+-[A-Za-z0-9\-]+)",
         r"Series\s*([A-Za-z0-9\-]+)",
@@ -31,17 +30,29 @@ class MetadataExtractor:
     # Terms to ignore if found as model (false positives)
     IGNORE_TERMS = {"LIFEPO4", "BATTERY", "MANUAL", "LITHIUM", "V1.0", "V2.0", "VERSION", "OWNER", "INSTRUCTIONS", "SAFETY"}
 
-    def extract(self, file_input: Union[str, IOBase]) -> Tuple[Optional[str], Optional[str]]:
+    def extract(self, file_input: Union[str, IOBase, bytes]) -> Tuple[Optional[str], Optional[str]]:
         """
-        Extracts Brand and Model from a PDF file (path or file-like object).
+        Extracts Brand and Model from a PDF file (path, file-like object, or bytes).
         Returns (brand, model).
         """
+        doc = None
         try:
-            reader = PdfReader(file_input)
+            if isinstance(file_input, str):
+                doc = pymupdf.open(file_input)
+            elif isinstance(file_input, (bytes, bytearray)):
+                doc = pymupdf.open(stream=file_input, filetype="pdf")
+            elif isinstance(file_input, IOBase):
+                # BytesIO or similar
+                file_input.seek(0)
+                stream_data = file_input.read()
+                doc = pymupdf.open(stream=stream_data, filetype="pdf")
+            else:
+                return None, None
+
             # Analyze only the first 3 pages
             text = ""
-            for i in range(min(3, len(reader.pages))):
-                page_text = reader.pages[i].extract_text()
+            for i in range(min(3, len(doc))):
+                page_text = doc[i].get_text()
                 if page_text:
                     text += page_text + "\n"
             
@@ -49,6 +60,9 @@ class MetadataExtractor:
         except Exception as e:
             print(f"Error extracting metadata: {e}")
             return None, None
+        finally:
+            if doc:
+                doc.close()
 
     def _analyze_text(self, text: str) -> Tuple[Optional[str], Optional[str]]:
         # Normalize text to handle full-width characters (e.g. ： -> :)
