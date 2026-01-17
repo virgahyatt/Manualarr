@@ -1,12 +1,9 @@
-"""
-Main API application for Manualarr.
-"""
-import os
-import shutil
-from typing import List
 from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
+import os
+import shutil
+from typing import List
 
 from database import engine, get_db
 import models
@@ -69,3 +66,23 @@ def list_manuals(skip: int = 0, limit: int = 100, db: Session = Depends(get_db))
     """
     manuals = db.query(models.Manual).offset(skip).limit(limit).all()
     return manuals
+
+@app.delete("/manuals/{manual_id}")
+def delete_manual(manual_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a manual by ID.
+    """
+    manual = db.query(models.Manual).filter(models.Manual.id == manual_id).first()
+    if not manual:
+        raise HTTPException(status_code=404, detail="Manual not found")
+    
+    # Delete file from disk
+    if os.path.exists(manual.filepath):
+        try:
+            os.remove(manual.filepath)
+        except OSError:
+            pass # Log error in production
+            
+    db.delete(manual)
+    db.commit()
+    return {"message": "Manual deleted successfully"}

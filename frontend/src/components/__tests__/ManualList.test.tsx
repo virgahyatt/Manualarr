@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import type { Mocked } from 'vitest'
 import ManualList from '../ManualList'
@@ -24,6 +24,35 @@ describe('ManualList', () => {
       const link2 = screen.getByText('Dell - Monitor').closest('a')
       expect(link2).toHaveAttribute('href', '/api/files/monitor.pdf')
     })
+  })
+
+  it('deletes a manual', async () => {
+    const manuals = [
+      { id: 1, brand: 'Sony', model: 'TV', filename: 'manual.pdf' },
+    ]
+    mockedAxios.get.mockResolvedValue({ data: manuals })
+    mockedAxios.delete.mockResolvedValue({})
+    
+    // Mock window.confirm
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(<ManualList />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Sony - TV')).toBeInTheDocument()
+    })
+
+    const deleteButton = screen.getByText('Delete')
+    fireEvent.click(deleteButton)
+
+    await waitFor(() => {
+      expect(confirmSpy).toHaveBeenCalled()
+      expect(mockedAxios.delete).toHaveBeenCalledWith('/api/manuals/1')
+      // Should be removed from the list
+      expect(screen.queryByText('Sony - TV')).not.toBeInTheDocument()
+    })
+    
+    confirmSpy.mockRestore()
   })
 
   it('shows a message when no manuals are found', async () => {
