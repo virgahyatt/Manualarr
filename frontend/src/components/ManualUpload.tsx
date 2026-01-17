@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import axios from 'axios'
-import { Form, Button, Alert, Spinner, InputGroup } from 'react-bootstrap'
+import { Form, Button, Alert, Spinner } from 'react-bootstrap'
 
 interface ManualUploadProps {
   onUploadSuccess: () => void
