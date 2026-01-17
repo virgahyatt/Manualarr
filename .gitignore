@@ -1,0 +1,26 @@
+# General
+.DS_Store
+.env
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+.pytest_cache/
+*.egg-info/
+
+# Node/Frontend
+node_modules/
+build/
+dist/
+.npm/
+
+# Database
+*.sqlite
+*.db
+
+# Docker
+.docker_data/
