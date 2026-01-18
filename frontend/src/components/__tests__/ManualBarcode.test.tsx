@@ -19,6 +19,10 @@ vi.mock('html5-qrcode', () => {
       CODE_128: 4,
       CODE_39: 5,
       QR_CODE: 6
+    },
+    Html5QrcodeScanType: {
+      SCAN_TYPE_CAMERA: 0,
+      SCAN_TYPE_FILE: 1
     }
   }
 })

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode'
+import { Html5QrcodeScanner, Html5QrcodeSupportedFormats, Html5QrcodeScanType } from 'html5-qrcode'
 import axios from 'axios'
 import { Button, Alert, Form, Spinner } from 'react-bootstrap'
 
@@ -31,6 +31,7 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
         experimentalFeatures: {
           useBarCodeDetectorIfSupported: true
         },
+        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
         formatsToSupport: [
           Html5QrcodeSupportedFormats.EAN_13,
           Html5QrcodeSupportedFormats.EAN_8,
