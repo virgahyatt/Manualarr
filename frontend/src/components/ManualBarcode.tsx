@@ -106,14 +106,25 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
 
     try {
       const response = await axios.post('/api/products/scan-barcode', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 30000 // 30 seconds timeout
       })
       const { brand, model } = response.data
       setScanning(false)
       onProductFound(brand || '', model || '')
     } catch (err: any) {
-      const detail = err.response?.data?.detail || "Could not detect barcode in image."
-      setError(detail)
+      console.error("Scan Error:", err)
+      let detail = "Could not detect barcode in image."
+      
+      if (err.code === 'ECONNABORTED') {
+          detail = "Upload timed out. The image might be too large or the server is busy."
+      } else if (err.response?.data?.detail) {
+          detail = err.response.data.detail
+      } else if (err.message) {
+          detail = err.message
+      }
+      
+      setError(`Error: ${detail}`)
       // Resume scanning
       if (scannerRef.current && scanning) {
           scannerRef.current.resume()

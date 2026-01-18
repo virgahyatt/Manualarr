@@ -50,17 +50,23 @@ discovery_service = DiscoveryService()
 indexer = IndexerService()
 product_lookup = ProductLookupService()
 
+@app.on_event("startup")
+async def startup_event():
+    print("----------------------------------------------------------------")
+    print("MANUALARR BACKEND STARTED - DEBUG MODE v2")
+    print("----------------------------------------------------------------")
+
 @app.get("/products/lookup")
 def lookup_product(barcode: str = Query(...)):
     """
     Lookup product metadata by barcode.
     """
-    logger.info(f"Looking up product by barcode: {barcode}")
+    print(f"DEBUG: Looking up product by barcode: {barcode}")
     brand, model = product_lookup.lookup(barcode)
     if not brand and not model:
-        logger.warning(f"Product not found for barcode: {barcode}")
+        print(f"DEBUG: Product not found for barcode: {barcode}")
         raise HTTPException(status_code=404, detail="Product not found")
-    logger.info(f"Product found: {brand} {model}")
+    print(f"DEBUG: Product found: {brand} {model}")
     return {"brand": brand, "model": model}
 
 @app.post("/products/scan-barcode")
@@ -68,14 +74,26 @@ async def scan_barcode(file: UploadFile = File(...)):
     """
     Scan an uploaded image for a barcode and lookup product metadata.
     """
-    logger.info(f"Received image for barcode scanning: {file.filename}")
-    content = await file.read()
-    brand, model = product_lookup.scan_barcode(content)
-    if not brand and not model:
-        logger.warning(f"No barcode detected or product not found in image: {file.filename}")
-        raise HTTPException(status_code=404, detail="No barcode detected or product not found")
-    logger.info(f"Barcode scan successful: {brand} {model}")
-    return {"brand": brand, "model": model}
+    print(f"DEBUG: Received request to scan-barcode")
+    try:
+        print(f"DEBUG: Processing file: {file.filename}")
+        content = await file.read()
+        print(f"DEBUG: File read complete, size: {len(content)} bytes")
+        
+        brand, model = product_lookup.scan_barcode(content)
+        
+        if not brand and not model:
+            print(f"DEBUG: No barcode detected or product not found")
+            raise HTTPException(status_code=404, detail="No barcode detected or product not found")
+            
+        print(f"DEBUG: Scan successful: {brand} {model}")
+        return {"brand": brand, "model": model}
+    except HTTPException:
+        # Re-raise HTTP exceptions so they return the correct status code
+        raise
+    except Exception as e:
+        print(f"DEBUG: Error in scan_barcode endpoint: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/manuals/extract-metadata")
 async def extract_metadata(file: UploadFile = File(...)):
