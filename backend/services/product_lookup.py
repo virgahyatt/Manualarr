@@ -3,6 +3,9 @@ from typing import Optional, Tuple
 from pyzbar.pyzbar import decode
 from PIL import Image
 import io
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ProductLookupService:
     def lookup(self, barcode: str) -> Tuple[Optional[str], Optional[str]]:
@@ -25,7 +28,7 @@ class ProductLookupService:
                     return brand, product_name
             return None, None
         except Exception as e:
-            print(f"Barcode lookup failed: {e}")
+            logger.error(f"Barcode lookup failed: {e}")
             return None, None
 
     def scan_barcode(self, image_data: bytes) -> Tuple[Optional[str], Optional[str]]:
@@ -34,15 +37,24 @@ class ProductLookupService:
         """
         try:
             image = Image.open(io.BytesIO(image_data))
+            logger.info(f"Scanning image: {image.format} {image.size} {image.mode}")
+            
             barcodes = decode(image)
+            logger.info(f"Detected {len(barcodes)} barcodes.")
             
             for barcode in barcodes:
                 barcode_data = barcode.data.decode("utf-8")
+                barcode_type = barcode.type
+                logger.info(f"Processing barcode: {barcode_data} ({barcode_type})")
+                
                 brand, model = self.lookup(barcode_data)
                 if brand or model:
+                    logger.info(f"Match found for {barcode_data}: {brand} {model}")
                     return brand, model
+                else:
+                    logger.info(f"No product found for {barcode_data}")
             
             return None, None
         except Exception as e:
-            print(f"Barcode scanning failed: {e}")
+            logger.error(f"Barcode scanning failed: {e}")
             return None, None

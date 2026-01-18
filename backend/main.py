@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 import os
 import shutil
+import logging
 from io import BytesIO
 from urllib.parse import urlparse, unquote
 
@@ -14,6 +15,10 @@ from services.indexer import IndexerService
 from services.product_lookup import ProductLookupService
 import models
 import schemas
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Ensure database directory exists if using SQLite with a path
 if engine.url.drivername == 'sqlite':
@@ -50,9 +55,12 @@ def lookup_product(barcode: str = Query(...)):
     """
     Lookup product metadata by barcode.
     """
+    logger.info(f"Looking up product by barcode: {barcode}")
     brand, model = product_lookup.lookup(barcode)
     if not brand and not model:
+        logger.warning(f"Product not found for barcode: {barcode}")
         raise HTTPException(status_code=404, detail="Product not found")
+    logger.info(f"Product found: {brand} {model}")
     return {"brand": brand, "model": model}
 
 @app.post("/products/scan-barcode")
@@ -60,10 +68,13 @@ async def scan_barcode(file: UploadFile = File(...)):
     """
     Scan an uploaded image for a barcode and lookup product metadata.
     """
+    logger.info(f"Received image for barcode scanning: {file.filename}")
     content = await file.read()
     brand, model = product_lookup.scan_barcode(content)
     if not brand and not model:
+        logger.warning(f"No barcode detected or product not found in image: {file.filename}")
         raise HTTPException(status_code=404, detail="No barcode detected or product not found")
+    logger.info(f"Barcode scan successful: {brand} {model}")
     return {"brand": brand, "model": model}
 
 @app.post("/manuals/extract-metadata")
@@ -75,15 +86,18 @@ async def extract_metadata(file: UploadFile = File(...)):
     if not file.filename:
         raise HTTPException(status_code=400, detail="Filename is missing")
     
+    logger.info(f"Extracting metadata from file: {file.filename}")
+    
     # Read file content into memory/temp
     content = await file.read()
     file_obj = BytesIO(content)
     
     try:
         brand, model = extractor.extract(file_obj)
+        logger.info(f"Metadata extracted: {brand} {model}")
         return {"brand": brand, "model": model}
     except Exception as e:
-        print(f"Extraction error: {e}")
+        logger.error(f"Extraction error: {e}")
         return {"brand": None, "model": None}
 
 @app.get("/manuals/search", response_model=List[schemas.ManualSearchResult])
@@ -91,6 +105,7 @@ def search_manuals(brand: str = Query(...), model: str = Query(...)):
     """
     Search for manuals on the Internet Archive.
     """
+    logger.info(f"Searching manuals for: {brand} {model}")
     return discovery_service.search(brand, model)
 
 @app.post("/manuals/import", response_model=schemas.Manual, status_code=201)
@@ -98,6 +113,7 @@ def import_manual(request: schemas.ManualImport, background_tasks: BackgroundTas
     """
     Import a manual from a URL.
     """
+    logger.info(f"Importing manual from URL: {request.url}")
     # Create filename
     if request.filename:
         base_name = os.path.basename(request.filename)
@@ -121,6 +137,7 @@ def import_manual(request: schemas.ManualImport, background_tasks: BackgroundTas
     # Download
     success = discovery_service.download(request.url, dest_path)
     if not success:
+        logger.error(f"Failed to download manual from {request.url}")
         raise HTTPException(status_code=400, detail="Failed to download manual")
     
     # Auto-extract if missing metadata
@@ -145,6 +162,8 @@ def import_manual(request: schemas.ManualImport, background_tasks: BackgroundTas
     db.commit()
     db.refresh(db_manual)
     
+    logger.info(f"Manual imported successfully: {db_manual.id} - {final_brand} {final_model}")
+    
     # Trigger indexing
     background_tasks.add_task(indexer_task, db_manual.id, dest_path)
     
@@ -164,6 +183,8 @@ def create_manual(
     """
     if not file.filename:
         raise HTTPException(status_code=400, detail="Filename is missing")
+        
+    logger.info(f"Uploading manual: {file.filename}")
 
     file_location = os.path.join(UPLOAD_DIR, file.filename)
     with open(file_location, "wb") as buffer:
@@ -186,6 +207,8 @@ def create_manual(
     db.add(db_manual)
     db.commit()
     db.refresh(db_manual)
+    
+    logger.info(f"Manual uploaded successfully: {db_manual.id} - {brand} {model}")
     
     # Trigger indexing
     background_tasks.add_task(indexer_task, db_manual.id, file_location)
