@@ -1,5 +1,8 @@
 import requests
 from typing import Optional, Tuple
+from pyzbar.pyzbar import decode
+from PIL import Image
+import io
 
 class ProductLookupService:
     def lookup(self, barcode: str) -> Tuple[Optional[str], Optional[str]]:
@@ -23,4 +26,23 @@ class ProductLookupService:
             return None, None
         except Exception as e:
             print(f"Barcode lookup failed: {e}")
+            return None, None
+
+    def scan_barcode(self, image_data: bytes) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Scan an image for barcodes and look up the first one found.
+        """
+        try:
+            image = Image.open(io.BytesIO(image_data))
+            barcodes = decode(image)
+            
+            for barcode in barcodes:
+                barcode_data = barcode.data.decode("utf-8")
+                brand, model = self.lookup(barcode_data)
+                if brand or model:
+                    return brand, model
+            
+            return None, None
+        except Exception as e:
+            print(f"Barcode scanning failed: {e}")
             return None, None

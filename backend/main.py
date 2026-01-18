@@ -55,6 +55,17 @@ def lookup_product(barcode: str = Query(...)):
         raise HTTPException(status_code=404, detail="Product not found")
     return {"brand": brand, "model": model}
 
+@app.post("/products/scan-barcode")
+async def scan_barcode(file: UploadFile = File(...)):
+    """
+    Scan an uploaded image for a barcode and lookup product metadata.
+    """
+    content = await file.read()
+    brand, model = product_lookup.scan_barcode(content)
+    if not brand and not model:
+        raise HTTPException(status_code=404, detail="No barcode detected or product not found")
+    return {"brand": brand, "model": model}
+
 @app.post("/manuals/extract-metadata")
 async def extract_metadata(file: UploadFile = File(...)):
     """

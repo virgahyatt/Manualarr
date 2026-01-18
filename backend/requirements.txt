@@ -6,3 +6,5 @@ pytest
 httpx
 pymupdf
 internetarchive
+pyzbar
+pillow

@@ -10,6 +10,15 @@ vi.mock('html5-qrcode', () => {
       clear() { return Promise.resolve(true) }
       pause() {}
       resume() {}
+    },
+    Html5QrcodeSupportedFormats: {
+      EAN_13: 0,
+      EAN_8: 1,
+      UPC_A: 2,
+      UPC_E: 3,
+      CODE_128: 4,
+      CODE_39: 5,
+      QR_CODE: 6
     }
   }
 })

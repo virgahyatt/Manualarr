@@ -11,6 +11,7 @@ ENV PYTHONUNBUFFERED=1
 # Install system dependencies (if needed later for PDF/Image processing)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    libzbar0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install python dependencies

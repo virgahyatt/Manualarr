@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Html5QrcodeScanner } from 'html5-qrcode'
+import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 import axios from 'axios'
-import { Button, Alert } from 'react-bootstrap'
+import { Button, Alert, Form, Spinner } from 'react-bootstrap'
 
 interface ManualBarcodeProps {
   onProductFound: (brand: string, model: string) => void
@@ -10,6 +10,7 @@ interface ManualBarcodeProps {
 const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
   const [error, setError] = useState<string | null>(null)
   const [scanning, setScanning] = useState(true)
+  const [uploading, setUploading] = useState(false)
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
 
   useEffect(() => {
@@ -24,7 +25,22 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
 
     const scanner = new Html5QrcodeScanner(
       scannerId,
-      { fps: 10, qrbox: { width: 250, height: 250 } },
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true
+        },
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.QR_CODE,
+        ]
+      },
       /* verbose= */ false
     )
     scannerRef.current = scanner
@@ -57,14 +73,11 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
       
     } catch (err) {
       setError(`Product lookup failed for barcode: ${decodedText}. You may need to search manually.`)
-      // Resume scanning if failed? Or let user decide?
-      // Let's let user try again or switch tab
     }
   }
 
   const onScanFailure = (_error: any) => {
     // handle scan failure, usually better to ignore and keep scanning.
-    // console.warn(`Code scan error = ${error}`);
   }
   
   const handleRestart = () => {
@@ -75,18 +88,67 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
       }
   }
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploading(true)
+    setError(null)
+    
+    // Pause scanner if active
+    if (scannerRef.current && scanning) {
+        scannerRef.current.pause()
+    }
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const response = await axios.post('/api/products/scan-barcode', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      const { brand, model } = response.data
+      setScanning(false)
+      onProductFound(brand || '', model || '')
+    } catch (err: any) {
+      const detail = err.response?.data?.detail || "Could not detect barcode in image."
+      setError(detail)
+      // Resume scanning
+      if (scannerRef.current && scanning) {
+          scannerRef.current.resume()
+      }
+    } finally {
+      setUploading(false)
+      // Reset input
+      e.target.value = ''
+    }
+  }
+
   return (
     <div className="mb-4">
       {error && <Alert variant="warning">{error}</Alert>}
       
-      {!scanning && error && (
-          <Button onClick={handleRestart} variant="secondary" className="mb-3">Scan Again</Button>
+      <div className="mb-3">
+        <Form.Group controlId="barcodeImage" className="mb-2">
+          <Form.Label>Upload a photo of a barcode</Form.Label>
+          <Form.Control 
+            type="file" 
+            accept="image/*" 
+            onChange={handleFileUpload} 
+            disabled={uploading}
+          />
+          {uploading && <Form.Text className="text-muted"><Spinner animation="border" size="sm" /> Scanning image...</Form.Text>}
+        </Form.Group>
+      </div>
+
+      {!scanning && (error || !uploading) && (
+          <Button onClick={handleRestart} variant="secondary" className="mb-3">Start Camera Scan</Button>
       )}
 
-      <div id="reader" style={{ width: '100%' }}></div>
+      <div id="reader" style={{ width: '100%', display: scanning ? 'block' : 'none' }}></div>
       
       <div className="text-muted mt-2 small">
-        Point your camera at a product barcode (UPC/EAN).
+        Point your camera at a product barcode (UPC/EAN) or upload a clear photo.
       </div>
     </div>
   )
