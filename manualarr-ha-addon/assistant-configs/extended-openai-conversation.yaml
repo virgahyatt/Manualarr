@@ -4,41 +4,44 @@ Use this configuration with the [Extended OpenAI Conversation](https://github.co
 
 ## Configuration
 
+Paste the following into the **Functions** text area in the integration configuration. 
+
+**Note:** If the box is already labeled "Functions", you only need to paste the list items (starting from the `- spec:` line).
+
 ```yaml
-functions:
-  - spec:
-      name: search_manuals
-      description: >-
-        Search product manuals for specifications, instructions, troubleshooting,
-        or any other information. Use this when the user asks about their devices,
-        appliances, equipment, or products they own.
-      parameters:
-        type: object
-        properties:
-          query:
-            type: string
-            description: >-
-              Search terms to find in manuals (e.g., "max temperature",
-              "error code E3", "installation steps", "warranty period")
-          brand:
-            type: string
-            description: >-
-              Optional brand filter (e.g., "ECO-WORTHY", "Eco-Spa", "Samsung")
-          model:
-            type: string
-            description: >-
-              Optional model number filter (e.g., "E3", "ECO-LFP4810002")
-        required:
-          - query
-    function:
-      type: rest
-      resource: http://homeassistant.local:8081/api/search/context
-      method: GET
-      value_template: >-
-        {% set params = {"q": query, "limit": 5} %}
-        {% if brand is defined and brand %}{% set _ = params.update({"brand": brand}) %}{% endif %}
-        {% if model is defined and model %}{% set _ = params.update({"model": model}) %}{% endif %}
-        {{ params | to_json }}
+- spec:
+    name: search_manuals
+    description: >-
+      Search product manuals for specifications, instructions, troubleshooting,
+      or any other information. Use this when the user asks about their devices,
+      appliances, equipment, or products they own.
+    parameters:
+      type: object
+      properties:
+        query:
+          type: string
+          description: >-
+            Search terms to find in manuals (e.g., "max temperature",
+            "error code E3", "installation steps", "warranty period")
+        brand:
+          type: string
+          description: >-
+            Optional brand filter (e.g., "ECO-WORTHY", "Eco-Spa", "Samsung")
+        model:
+          type: string
+          description: >-
+            Optional model number filter (e.g., "E3", "ECO-LFP4810002")
+      required:
+        - query
+  function:
+    type: rest
+    resource: http://homeassistant.local:8081/api/search/context
+    method: GET
+    value_template: >-
+      {% set params = {"q": query, "limit": 5} %}
+      {% if brand is defined and brand %}{% set _ = params.update({"brand": brand}) %}{% endif %}
+      {% if model is defined and model %}{% set _ = params.update({"model": model}) %}{% endif %}
+      {{ params | to_json }}
 ```
 
 ## Important Setup Steps
