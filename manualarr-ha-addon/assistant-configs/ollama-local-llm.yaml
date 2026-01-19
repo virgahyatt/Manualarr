@@ -9,13 +9,15 @@ You can use Ollama with Home Assistant via the **Extended OpenAI Conversation** 
 
 ## Step 1: Configure Extended OpenAI Conversation
 
-When adding or configuring the integration in Home Assistant:
-
-1.  **Name**: Ollama (or whatever you prefer)
-2.  **Base URL**: `http://<your-ollama-ip>:11434/v1`
-    *   *Note: If running as a HA Add-on, use `http://<addon-slug>:11434/v1`*
-3.  **API Key**: `ollama` (placeholder, usually required but ignored)
-4.  **Model**: Enter the exact model name you pulled in Ollama (e.g., `llama3.1:8b`)
+1.  **Initial Setup**:
+    - When adding the integration, it may only ask for an **API Key**.
+    - Enter `ollama` (or any dummy text) and submit.
+    - If it tries to connect and fails, look for an option to skip or just proceed.
+2.  **Configuration**:
+    - Once added (even if it shows an error), find it in your **Integrations** list.
+    - Click **Configure**.
+    - Here you can set the **Base URL** to `http://<your-ollama-ip>:11434/v1`.
+    - Set the **Model** to your specific Ollama model (e.g., `llama3.1`).
 
 ## Step 2: Add the Search Tool
 
