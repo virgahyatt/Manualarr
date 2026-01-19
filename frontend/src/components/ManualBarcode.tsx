@@ -97,7 +97,14 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
   const onScanFailure = (errorMessage: any) => {
     // handle scan failure, usually better to ignore and keep scanning.
     // Filter out the common "No MultiFormat Readers" error to avoid console flood
-    if (errorMessage?.toString().includes("No MultiFormat Readers")) {
+    const errorStr = errorMessage?.toString() || '';
+    if (errorStr.includes("No MultiFormat Readers")) {
+        // Log every 50th failure to confirm life, otherwise silence
+        // We can use a static counter or just random for simplicity since we don't have state here easily 
+        // without triggering re-renders if we used state.
+        if (Math.random() < 0.02) {
+             remoteLog("Scanning active (looking for code...)", "DEBUG", { error: "No code detected" });
+        }
         return;
     }
     // Only log significant errors to backend
