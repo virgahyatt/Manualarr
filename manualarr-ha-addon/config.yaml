@@ -2,6 +2,8 @@ name: Manualarr
 description: Product manual library with AI search
 version: "1.0.0"
 slug: manualarr
+init: false
+startup: application
 arch:
   - aarch64
   - amd64

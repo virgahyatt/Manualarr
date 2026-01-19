@@ -32,7 +32,7 @@ COPY backend/ /app/backend/
 COPY --from=frontend-build /app/dist /var/www/frontend
 
 # Copy rootfs
-COPY manualarr-ha-addon/manualarr/rootfs /
+COPY rootfs /
 
 # Expose ingress port
 EXPOSE 8080
