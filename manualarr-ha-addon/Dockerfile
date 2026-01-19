@@ -34,6 +34,12 @@ RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 # Copy backend code
 COPY backend/ /app/backend/
 
+# Link nginx logs to stdout/stderr for Home Assistant logging visibility
+# And ensure nginx can write to its cache/log directories
+RUN ln -sf /dev/stdout /var/log/nginx/access.log \
+    && ln -sf /dev/stderr /var/log/nginx/error.log \
+    && chown -R www-data:www-data /var/lib/nginx /var/log/nginx
+
 # Copy frontend build
 COPY --from=frontend-build /app/dist /var/www/frontend
 
