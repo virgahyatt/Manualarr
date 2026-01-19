@@ -95,20 +95,28 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
 
     setUploading(true)
     setError(null)
-    
-    // Pause scanner if active
-    if (scannerRef.current && scanning) {
-        scannerRef.current.pause()
-    }
+    console.log("Starting file upload:", file.name)
 
     const formData = new FormData()
     formData.append('file', file)
 
     try {
+        // Safely pause scanner
+        try {
+            if (scannerRef.current && scanning) {
+                console.log("Pausing camera scanner...")
+                scannerRef.current.pause()
+            }
+        } catch (pauseErr) {
+            console.warn("Failed to pause scanner (non-fatal):", pauseErr)
+        }
+
+      console.log("Sending request to backend...")
       const response = await axios.post('/api/products/scan-barcode', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 30000 // 30 seconds timeout
       })
+      console.log("Response received:", response.data)
       const { brand, model } = response.data
       setScanning(false)
       onProductFound(brand || '', model || '')
@@ -125,9 +133,14 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
       }
       
       setError(`Error: ${detail}`)
+      
       // Resume scanning
-      if (scannerRef.current && scanning) {
-          scannerRef.current.resume()
+      try {
+        if (scannerRef.current && scanning) {
+            scannerRef.current.resume()
+        }
+      } catch (resumeErr) {
+          console.warn("Failed to resume scanner:", resumeErr)
       }
     } finally {
       setUploading(false)
