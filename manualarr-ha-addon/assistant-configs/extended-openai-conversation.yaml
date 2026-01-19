@@ -4,9 +4,10 @@ Use this configuration with the [Extended OpenAI Conversation](https://github.co
 
 ## Configuration
 
-Paste the following into the **Functions** text area in the integration configuration. 
+**Append** the following block to the **Functions** text area in the integration configuration. 
 
-**Note:** If the box is already labeled "Functions", you only need to paste the list items (starting from the `- spec:` line).
+*   If the box is empty, simply paste it.
+*   If you already have functions defined, add this to the end of the list. Ensure the indentation of `- spec:` matches the existing items.
 
 ```yaml
 - spec:
