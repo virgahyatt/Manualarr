@@ -80,14 +80,14 @@ async def scan_barcode(file: UploadFile = File(...)):
         content = await file.read()
         print(f"DEBUG: File read complete, size: {len(content)} bytes")
         
-        brand, model = product_lookup.scan_barcode(content)
+        brand, model, barcode = product_lookup.scan_barcode(content)
         
-        if not brand and not model:
-            print(f"DEBUG: No barcode detected or product not found")
-            raise HTTPException(status_code=404, detail="No barcode detected or product not found")
+        if not barcode:
+            print(f"DEBUG: No barcode detected")
+            raise HTTPException(status_code=404, detail="No barcode detected in the image.")
             
-        print(f"DEBUG: Scan successful: {brand} {model}")
-        return {"brand": brand, "model": model}
+        print(f"DEBUG: Scan result - Barcode: {barcode}, Brand: {brand}, Model: {model}")
+        return {"brand": brand, "model": model, "barcode": barcode}
     except HTTPException:
         # Re-raise HTTP exceptions so they return the correct status code
         raise

@@ -117,9 +117,15 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
         timeout: 30000 // 30 seconds timeout
       })
       console.log("Response received:", response.data)
-      const { brand, model } = response.data
-      setScanning(false)
-      onProductFound(brand || '', model || '')
+      const { brand, model, barcode } = response.data
+      
+      if (barcode && !brand && !model) {
+          setError(`Barcode detected: ${barcode}, but no product information was found. You may need to enter details manually.`)
+          // We don't setScanning(false) here so they can try again or see the error
+      } else {
+          setScanning(false)
+          onProductFound(brand || '', model || '')
+      }
     } catch (err: any) {
       console.error("Scan Error:", err)
       let detail = "Could not detect barcode in image."

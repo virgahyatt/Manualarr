@@ -31,9 +31,10 @@ class ProductLookupService:
             logger.error(f"Barcode lookup failed: {e}")
             return None, None
 
-    def scan_barcode(self, image_data: bytes) -> Tuple[Optional[str], Optional[str]]:
+    def scan_barcode(self, image_data: bytes) -> Tuple[Optional[str], Optional[str], Optional[str]]:
         """
         Scan an image for barcodes and look up the first one found.
+        Returns (brand, model, raw_barcode)
         """
         try:
             image = Image.open(io.BytesIO(image_data))
@@ -50,11 +51,12 @@ class ProductLookupService:
                 brand, model = self.lookup(barcode_data)
                 if brand or model:
                     logger.info(f"Match found for {barcode_data}: {brand} {model}")
-                    return brand, model
+                    return brand, model, barcode_data
                 else:
                     logger.info(f"No product found for {barcode_data}")
+                    return None, None, barcode_data
             
-            return None, None
+            return None, None, None
         except Exception as e:
             logger.error(f"Barcode scanning failed: {e}")
-            return None, None
+            return None, None, None
