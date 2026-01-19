@@ -20,7 +20,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     nginx \
     libzbar0 \
     build-essential \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /etc/nginx/sites-enabled/default
 
 # Set up working directory
 WORKDIR /app
