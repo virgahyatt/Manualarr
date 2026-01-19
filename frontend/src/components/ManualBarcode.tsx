@@ -42,10 +42,11 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
           Html5QrcodeSupportedFormats.QR_CODE,
         ]
       },
-      /* verbose= */ false
+      /* verbose= */ true
     )
     scannerRef.current = scanner
 
+    console.log("Rendering scanner...")
     scanner.render(onScanSuccess, onScanFailure)
 
     return () => {
@@ -56,6 +57,7 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
   }, [])
 
   const onScanSuccess = async (decodedText: string) => {
+    console.log("Scan success:", decodedText)
     // Stop scanning
     if (scannerRef.current) {
         scannerRef.current.pause() 
@@ -77,8 +79,14 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
     }
   }
 
-  const onScanFailure = (_error: any) => {
+  const onScanFailure = (errorMessage: any) => {
     // handle scan failure, usually better to ignore and keep scanning.
+    // Filter out the common "No MultiFormat Readers" error to avoid console flood
+    if (errorMessage?.toString().includes("No MultiFormat Readers")) {
+        // quiet failure (no code found in frame)
+        return;
+    }
+    console.warn("Scan failure:", errorMessage)
   }
   
   const handleRestart = () => {
