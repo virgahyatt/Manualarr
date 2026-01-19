@@ -9,6 +9,8 @@ You can use Ollama with Home Assistant via the **Extended OpenAI Conversation** 
 
 ## Step 1: Configure Extended OpenAI Conversation
 
+**⚠️ CRITICAL:** Ensure you are using the **Extended OpenAI Conversation** integration installed via **HACS**. Do not use the built-in "OpenAI Conversation" integration, as it lacks the necessary configuration options for Ollama.
+
 1.  **Initial Setup**:
     - When adding the integration, it may only ask for an **API Key**.
     - Enter `ollama` (or any dummy text) and submit.
