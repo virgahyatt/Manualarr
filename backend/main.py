@@ -31,14 +31,15 @@ models.Base.metadata.create_all(bind=engine)
 # Initialize FTS
 init_fts(engine)
 
-app = FastAPI(title="Manualarr API")
-
-UPLOAD_DIR = "backend/uploads"
-# In Docker, this might be just "uploads" relative to WORKDIR /app
-if os.path.exists("uploads"):
-    UPLOAD_DIR = "uploads"
+# Configure uploads directory
+UPLOAD_DIR = os.getenv("UPLOAD_DIR")
+if not UPLOAD_DIR:
+    if os.path.exists("uploads"):
+        UPLOAD_DIR = "uploads"
+    else:
+        UPLOAD_DIR = "backend/uploads"
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
 else:
-    # Fallback for local dev if not running in docker or different structure
     os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # Mount the uploads directory to serve files

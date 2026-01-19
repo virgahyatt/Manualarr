@@ -1,0 +1,14 @@
+#!/usr/bin/with-contenv bashio
+bashio::log.info "Starting Manualarr backend..."
+
+# Set environment variables for HA add-on
+export DATABASE_URL="sqlite:////data/manualarr.db"
+export UPLOAD_DIR="/share/manualarr"
+
+bashio::log.info "Using database: ${DATABASE_URL}"
+bashio::log.info "Using upload directory: ${UPLOAD_DIR}"
+
+mkdir -p "${UPLOAD_DIR}"
+
+cd /app/backend
+exec uvicorn main:app --host 127.0.0.1 --port 8000
