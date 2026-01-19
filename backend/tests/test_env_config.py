@@ -31,3 +31,17 @@ def test_database_url_env_var(tmp_path):
     
     # Cleanup
     del os.environ["DATABASE_URL"]
+
+def test_log_level_env_var():
+    os.environ["LOG_LEVEL"] = "DEBUG"
+    import main
+    importlib.reload(main)
+    assert main.LOG_LEVEL == "DEBUG"
+    del os.environ["LOG_LEVEL"]
+
+def test_max_search_results_env_var():
+    os.environ["MAX_SEARCH_RESULTS"] = "25"
+    import main
+    importlib.reload(main)
+    assert main.MAX_SEARCH_RESULTS == 25
+    del os.environ["MAX_SEARCH_RESULTS"]
