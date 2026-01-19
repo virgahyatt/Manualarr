@@ -21,7 +21,7 @@ const ManualImportUrl: React.FC<ManualImportUrlProps> = ({ onImportSuccess }) =>
     setSuccessMsg(null)
 
     try {
-      await axios.post('/api/manuals/import', {
+      await axios.post('api/manuals/import', {
         url,
         brand: brand || null, // Send null if empty to trigger auto-detect
         model: model || null

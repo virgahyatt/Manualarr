@@ -25,7 +25,7 @@ const ManualList: React.FC = () => {
   useEffect(() => {
     const fetchManuals = async () => {
       try {
-        const response = await axios.get<Manual[]>('/api/manuals/')
+        const response = await axios.get<Manual[]>('api/manuals/')
         setManuals(response.data)
       } catch (err) {
         setError('Failed to fetch manuals')
@@ -42,7 +42,7 @@ const ManualList: React.FC = () => {
     if (!window.confirm('Are you sure you want to delete this manual?')) return
 
     try {
-      await axios.delete(`/api/manuals/${id}`)
+      await axios.delete(`api/manuals/${id}`)
       setManuals(manuals.filter(m => m.id !== id))
     } catch (err) {
       alert('Failed to delete manual')
@@ -64,7 +64,7 @@ const ManualList: React.FC = () => {
     if (!editingManual) return
 
     try {
-      const response = await axios.patch<Manual>(`/api/manuals/${editingManual.id}`, editForm)
+      const response = await axios.patch<Manual>(`api/manuals/${editingManual.id}`, editForm)
       setManuals(manuals.map(m => m.id === editingManual.id ? response.data : m))
       setShowEditModal(false)
     } catch (err) {
@@ -138,7 +138,7 @@ const ManualList: React.FC = () => {
                         <Button 
                           variant="outline-primary" 
                           size="sm"
-                          href={`/api/files/${encodeURIComponent(manual.filename)}`}
+                          href={`api/files/${encodeURIComponent(manual.filename)}`}
                           target="_blank"
                           title="Open PDF"
                         >

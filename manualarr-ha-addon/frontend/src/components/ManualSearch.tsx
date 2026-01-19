@@ -38,7 +38,7 @@ const ManualSearch: React.FC<ManualSearchProps> = ({ onImportSuccess, initialBra
     setResults([])
 
     try {
-      const response = await axios.get<SearchResult[]>('/api/manuals/search', {
+      const response = await axios.get<SearchResult[]>('api/manuals/search', {
         params: { brand, model }
       })
       setResults(response.data)
@@ -56,7 +56,7 @@ const ManualSearch: React.FC<ManualSearchProps> = ({ onImportSuccess, initialBra
   const handleImport = async (result: SearchResult) => {
     setImporting(result.identifier)
     try {
-      await axios.post('/api/manuals/import', {
+      await axios.post('api/manuals/import', {
         brand,
         model,
         url: result.url,

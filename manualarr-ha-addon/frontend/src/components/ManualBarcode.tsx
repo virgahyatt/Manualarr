@@ -16,7 +16,7 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
   // Remote logging helper to see logs in Portainer
   const remoteLog = (message: string, level: string = 'INFO', context: any = null) => {
     console.log(`[${level}] ${message}`, context || '');
-    axios.post('/api/logs', {
+    axios.post('api/logs', {
       level,
       message,
       context: context ? JSON.stringify(context) : ''
@@ -91,7 +91,7 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
     setError(null)
 
     try {
-      const response = await axios.get('/api/products/lookup', {
+      const response = await axios.get('api/products/lookup', {
         params: { barcode: decodedText }
       })
       const { brand, model } = response.data
@@ -153,7 +153,7 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
             console.warn("Failed to pause scanner (non-fatal):", pauseErr)
         }
 
-      const response = await axios.post('/api/products/scan-barcode', formData, {
+      const response = await axios.post('api/products/scan-barcode', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 30000 // 30 seconds timeout
       })

@@ -32,7 +32,7 @@ const ManualUpload: React.FC<ManualUploadProps> = ({ onUploadSuccess }) => {
     formData.append('file', selectedFile)
 
     try {
-      const response = await axios.post('/api/manuals/extract-metadata', formData, {
+      const response = await axios.post('api/manuals/extract-metadata', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
       
@@ -81,7 +81,7 @@ const ManualUpload: React.FC<ManualUploadProps> = ({ onUploadSuccess }) => {
     formData.append('file', file)
 
     try {
-      await axios.post('/api/manuals/', formData, {
+      await axios.post('api/manuals/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
