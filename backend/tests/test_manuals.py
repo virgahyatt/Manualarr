@@ -70,3 +70,35 @@ def test_delete_manual():
     response = client.get("/manuals/")
     manuals = response.json()
     assert not any(m["id"] == manual_id for m in manuals)
+
+def test_update_manual():
+    # First upload a manual
+    file_content = b"dummy pdf content for update"
+    file_name = "update_me.pdf"
+    files = {"file": (file_name, file_content, "application/pdf")}
+    data = {"brand": "OldBrand", "model": "OldModel"}
+    upload_response = client.post("/manuals/", files=files, data=data)
+    assert upload_response.status_code == 201
+    manual_id = upload_response.json()["id"]
+
+    # Update it
+    update_data = {
+        "brand": "NewBrand",
+        "model": "NewModel",
+        "filename": "updated_name.pdf"
+    }
+    response = client.patch(f"/manuals/{manual_id}", json=update_data)
+    
+    assert response.status_code == 200
+    json_resp = response.json()
+    assert json_resp["brand"] == "NewBrand"
+    assert json_resp["model"] == "NewModel"
+    assert json_resp["filename"] == "updated_name.pdf"
+    
+    # Verify changes
+    get_response = client.get("/manuals/")
+    manuals = get_response.json()
+    updated_manual = next(m for m in manuals if m["id"] == manual_id)
+    assert updated_manual["brand"] == "NewBrand"
+    assert updated_manual["model"] == "NewModel"
+    assert updated_manual["filename"] == "updated_name.pdf"
