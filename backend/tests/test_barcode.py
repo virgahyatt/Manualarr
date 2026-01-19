@@ -50,6 +50,31 @@ def test_scan_barcode_only_barcode_no_product():
                 assert response.status_code == 200
                 assert response.json() == {"brand": None, "model": None, "barcode": "123456789012"}
 
+def test_lookup_fallback_upcitemdb():
+    from services.product_lookup import ProductLookupService
+    service = ProductLookupService()
+    
+    # Mock OpenProductsFacts failure
+    with patch("requests.get") as mock_get:
+        # First call (OpenProductsFacts) -> 404 or empty
+        # Second call (UPCitemdb) -> Success
+        
+        mock_response_opf = MagicMock()
+        mock_response_opf.status_code = 404
+        
+        mock_response_upc = MagicMock()
+        mock_response_upc.status_code = 200
+        mock_response_upc.json.return_value = {
+            "total": 1,
+            "items": [{"brand": "Logitech", "title": "MX Master 3"}]
+        }
+        
+        mock_get.side_effect = [mock_response_opf, mock_response_upc]
+        
+        brand, model = service.lookup("097855149367")
+        assert brand == "Logitech"
+        assert model == "MX Master 3"
+
 def test_scan_barcode_invalid_image():
     # Test with invalid image data
     with patch("services.product_lookup.Image.open", side_effect=Exception("Invalid image")):

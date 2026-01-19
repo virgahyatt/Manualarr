@@ -10,9 +10,11 @@ logger = logging.getLogger(__name__)
 class ProductLookupService:
     def lookup(self, barcode: str) -> Tuple[Optional[str], Optional[str]]:
         """
-        Lookup product by barcode using OpenProductsFacts.
+        Lookup product by barcode.
+        Tries OpenProductsFacts first, then UPCitemdb.
         Returns (brand, model/product_name).
         """
+        # 1. Try OpenProductsFacts
         try:
             url = f"https://world.openproductsfacts.org/api/v0/product/{barcode}.json"
             response = requests.get(url, timeout=5)
@@ -21,15 +23,32 @@ class ProductLookupService:
                 if data.get("status") == 1:
                     product = data.get("product", {})
                     brand = product.get("brands", "").split(",")[0].strip()
-                    # Product name often contains the model or is descriptive
                     product_name = product.get("product_name", "")
-                    
-                    # Try to extract a model code if possible, but product name is a good start
-                    return brand, product_name
-            return None, None
+                    if brand or product_name:
+                        logger.info(f"Found in OpenProductsFacts: {brand} - {product_name}")
+                        return brand, product_name
         except Exception as e:
-            logger.error(f"Barcode lookup failed: {e}")
-            return None, None
+            logger.error(f"OpenProductsFacts lookup failed: {e}")
+
+        # 2. Try UPCitemdb (Fallback)
+        try:
+            # Free trial endpoint (100 req/day, no key needed)
+            url = "https://api.upcitemdb.com/prod/trial/lookup"
+            response = requests.get(url, params={"upc": barcode}, timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("total", 0) > 0:
+                    item = data["items"][0]
+                    brand = item.get("brand", "")
+                    title = item.get("title", "")
+                    # Model often hidden in title or description, but title is a good fallback for model
+                    if brand or title:
+                        logger.info(f"Found in UPCitemdb: {brand} - {title}")
+                        return brand, title
+        except Exception as e:
+            logger.error(f"UPCitemdb lookup failed: {e}")
+
+        return None, None
 
     def scan_barcode(self, image_data: bytes) -> Tuple[Optional[str], Optional[str], Optional[str]]:
         """
