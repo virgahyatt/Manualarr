@@ -45,6 +45,13 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
             const height = Math.min(viewfinderHeight * 0.4, 200);
             return { width, height };
         },
+        videoConstraints: {
+            facingMode: "environment", // Use back camera
+            width: { min: 640, ideal: 1280, max: 1920 }, // Request HD resolution
+            height: { min: 480, ideal: 720, max: 1080 },
+            // @ts-ignore - focusMode is non-standard but supported by some browsers
+            focusMode: "continuous" 
+        },
         experimentalFeatures: {
           useBarCodeDetectorIfSupported: false // Disable this as it can be flaky on some mobile browsers
         },
