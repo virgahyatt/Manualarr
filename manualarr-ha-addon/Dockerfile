@@ -11,7 +11,7 @@ RUN npm run build
 # Stage 2: Final Image
 # We ignore BUILD_FROM to force the use of the Debian-based Python image
 # which is required for building complex dependencies like pymupdf/pillow
-FROM ghcr.io/home-assistant/${BUILD_ARCH}-base-python:3.13
+FROM ghcr.io/home-assistant/${BUILD_ARCH}-base-python:3.12
 
 # Install system dependencies (Debian/apt)
 RUN apt-get update && apt-get install -y --no-install-recommends \
