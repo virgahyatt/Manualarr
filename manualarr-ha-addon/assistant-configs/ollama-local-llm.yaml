@@ -1,18 +1,29 @@
-# Ollama / Local LLM Template
+# Ollama Integration Guide
 
-If you are using Ollama via the Extended OpenAI Conversation integration, use the [Extended OpenAI Conversation](./extended-openai-conversation.yaml) template but point it to your Ollama server.
+You can use Ollama with Home Assistant via the **Extended OpenAI Conversation** integration, because Ollama provides an OpenAI-compatible API.
 
-If your model supports tool calling (like Llama 3.1 or Mistral), ensure your Home Assistant configuration is set up to expose the Manualarr API as a tool.
+## Prerequisites
 
-## Tool Description for LLMs
+1.  **Ollama Server**: Running and accessible from Home Assistant.
+2.  **Model**: A model that supports function calling is highly recommended (e.g., `llama3.1`, `mistral`, `qwen2.5`).
 
-```text
-Use this tool to search the user's product manual library. Returns relevant
-excerpts from PDF manuals including the page number and context. Call this
-when users ask about:
-- Product specifications (dimensions, capacity, power ratings)
-- Operating instructions or procedures
-- Safety warnings or limits
-- Troubleshooting or error codes
-- Warranty or maintenance information
-```
+## Step 1: Configure Extended OpenAI Conversation
+
+When adding or configuring the integration in Home Assistant:
+
+1.  **Name**: Ollama (or whatever you prefer)
+2.  **Base URL**: `http://<your-ollama-ip>:11434/v1`
+    *   *Note: If running as a HA Add-on, use `http://<addon-slug>:11434/v1`*
+3.  **API Key**: `ollama` (placeholder, usually required but ignored)
+4.  **Model**: Enter the exact model name you pulled in Ollama (e.g., `llama3.1:8b`)
+
+## Step 2: Add the Search Tool
+
+Use the YAML configuration from the [Extended OpenAI Conversation Template](./extended-openai-conversation.yaml).
+
+Copy the `functions:` block into the prompt configuration dialog of the integration.
+
+## Troubleshooting
+
+- **"Model does not support function calling"**: Ensure you are using a model version that supports tools.
+- **Connection Refused**: Verify Home Assistant can reach your Ollama IP/port.
