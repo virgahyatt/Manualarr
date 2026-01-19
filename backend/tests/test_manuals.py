@@ -1,9 +1,22 @@
 import pytest
 from fastapi.testclient import TestClient
-from main import app
+from main import app, UPLOAD_DIR
 import os
+import shutil
 
 client = TestClient(app)
+
+def setup_module(module):
+    """Ensure upload dir is clean before tests"""
+    if os.path.exists(UPLOAD_DIR):
+        shutil.rmtree(UPLOAD_DIR)
+    os.makedirs(UPLOAD_DIR)
+
+def teardown_module(module):
+    """Cleanup after tests"""
+    if os.path.exists(UPLOAD_DIR):
+        shutil.rmtree(UPLOAD_DIR)
+    os.makedirs(UPLOAD_DIR)
 
 def test_extract_metadata_endpoint():
     # Test the standalone extraction endpoint
