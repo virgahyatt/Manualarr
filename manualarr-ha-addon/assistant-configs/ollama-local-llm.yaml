@@ -1,0 +1,18 @@
+# Ollama / Local LLM Template
+
+If you are using Ollama via the Extended OpenAI Conversation integration, use the [Extended OpenAI Conversation](./extended-openai-conversation.yaml) template but point it to your Ollama server.
+
+If your model supports tool calling (like Llama 3.1 or Mistral), ensure your Home Assistant configuration is set up to expose the Manualarr API as a tool.
+
+## Tool Description for LLMs
+
+```text
+Use this tool to search the user's product manual library. Returns relevant
+excerpts from PDF manuals including the page number and context. Call this
+when users ask about:
+- Product specifications (dimensions, capacity, power ratings)
+- Operating instructions or procedures
+- Safety warnings or limits
+- Troubleshooting or error codes
+- Warranty or maintenance information
+```

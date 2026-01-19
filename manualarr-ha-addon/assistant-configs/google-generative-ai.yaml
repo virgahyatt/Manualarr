@@ -1,0 +1,40 @@
+# Google Generative AI Workaround Template
+
+For Google Gemini models, use this script-based approach since the built-in integration has limited tool support.
+
+## configuration.yaml
+
+```yaml
+rest_command:
+  search_manuals:
+    url: "http://manualarr:8080/api/search/context"
+    method: GET
+    query_params:
+      q: "{{ query }}"
+      brand: "{{ brand | default('') }}"
+      model: "{{ model | default('') }}"
+      limit: 5
+    content_type: "application/json"
+
+script:
+  search_product_manuals:
+    alias: "Search Product Manuals"
+    description: "Search indexed product manuals for information"
+    fields:
+      query:
+        description: "Search terms"
+        required: true
+        selector:
+          text:
+      brand:
+        description: "Brand filter (optional)"
+        selector:
+          text:
+    sequence:
+      - service: rest_command.search_manuals
+        data:
+          query: "{{ query }}"
+          brand: "{{ brand | default('') }}"
+```
+
+Expose the `script.search_product_manuals` to your Google Generative AI assistant.

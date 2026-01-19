@@ -1,0 +1,44 @@
+# Extended OpenAI Conversation Template
+
+Use this configuration with the [Extended OpenAI Conversation](https://github.com/jekalmin/extended_openai_conversation) integration in Home Assistant.
+
+## Configuration
+
+```yaml
+functions:
+  - spec:
+      name: search_manuals
+      description: >-
+        Search product manuals for specifications, instructions, troubleshooting,
+        or any other information. Use this when the user asks about their devices,
+        appliances, equipment, or products they own.
+      parameters:
+        type: object
+        properties:
+          query:
+            type: string
+            description: >-
+              Search terms to find in manuals (e.g., "max temperature",
+              "error code E3", "installation steps", "warranty period")
+          brand:
+            type: string
+            description: >-
+              Optional brand filter (e.g., "ECO-WORTHY", "Eco-Spa", "Samsung")
+          model:
+            type: string
+            description: >-
+              Optional model number filter (e.g., "E3", "ECO-LFP4810002")
+        required:
+          - query
+    function:
+      type: rest
+      resource: http://homeassistant.local:8123/api/hassio_ingress/manualarr/api/search/context
+      method: GET
+      value_template: >-
+        {% set params = {"q": query, "limit": 5} %}
+        {% if brand is defined and brand %}{% set _ = params.update({"brand": brand}) %}{% endif %}
+        {% if model is defined and model %}{% set _ = params.update({"model": model}) %}{% endif %}
+        {{ params | to_json }}
+```
+
+**Note:** Replace `http://homeassistant.local:8123/api/hassio_ingress/manualarr/api/search/context` with the actual ingress URL if different. For internal add-on-to-add-on communication, you might use `http://manualarr:8080/api/search/context`.
