@@ -6,43 +6,41 @@ Use this configuration with the [Extended OpenAI Conversation](https://github.co
 
 **Append** the following block to the **Functions** text area in the integration configuration. 
 
-*   If the box is empty, simply paste it.
-*   If you already have functions defined, add this to the end of the list. Ensure the indentation of `- spec:` matches the existing items.
+> **Note:** Home Assistant may show a warning saying *"It appears you may be writing YAML into this template field"*. You can safely **ignore this warning** and click Submit.
 
+### YAML Version
 ```yaml
 - spec:
     name: search_manuals
-    description: >-
-      Search product manuals for specifications, instructions, troubleshooting,
-      or any other information. Use this when the user asks about their devices,
-      appliances, equipment, or products they own.
-    parameters:
-      type: object
-      properties:
-        query:
-          type: string
-          description: >-
-            Search terms to find in manuals (e.g., "max temperature",
-            "error code E3", "installation steps", "warranty period")
-        brand:
-          type: string
-          description: >-
-            Optional brand filter (e.g., "ECO-WORTHY", "Eco-Spa", "Samsung")
-        model:
-          type: string
-          description: >-
-            Optional model number filter (e.g., "E3", "ECO-LFP4810002")
-      required:
-        - query
-  function:
-    type: rest
-    resource: http://homeassistant.local:8081/api/search/context
-    method: GET
-    value_template: >-
-      {% set params = {"q": query, "limit": 5} %}
-      {% if brand is defined and brand %}{% set _ = params.update({"brand": brand}) %}{% endif %}
-      {% if model is defined and model %}{% set _ = params.update({"model": model}) %}{% endif %}
+...
       {{ params | to_json }}
+```
+
+### JSON Version (Alternative)
+If the YAML version causes issues with the validator, use this JSON version:
+
+```json
+{
+  "spec": {
+    "name": "search_manuals",
+    "description": "Search product manuals for specifications, instructions, troubleshooting, or any other information.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": { "type": "string", "description": "Search terms" },
+        "brand": { "type": "string", "description": "Optional brand" },
+        "model": { "type": "string", "description": "Optional model" }
+      },
+      "required": ["query"]
+    }
+  },
+  "function": {
+    "type": "rest",
+    "resource": "http://homeassistant.local:8081/api/search/context",
+    "method": "GET",
+    "value_template": "{% set params = {\"q\": query, \"limit\": 5} %}{% if brand is defined and brand %}{% set _ = params.update({\"brand\": brand}) %}{% endif %}{% if model is defined and model %}{% set _ = params.update({\"model\": model}) %}{% endif %}{{ params | to_json }}"
+  }
+}
 ```
 
 ## Important Setup Steps
