@@ -31,6 +31,8 @@ models.Base.metadata.create_all(bind=engine)
 # Initialize FTS
 init_fts(engine)
 
+app = FastAPI(title="Manualarr API")
+
 # Configure uploads directory
 UPLOAD_DIR = os.getenv("UPLOAD_DIR")
 if not UPLOAD_DIR:
