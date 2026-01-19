@@ -38,10 +38,15 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
     const scanner = new Html5QrcodeScanner(
       scannerId,
       {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
+        fps: 20, // Increased FPS for smoother detection
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+            // Make it wider for 1D barcodes which are usually long and short
+            const width = Math.min(viewfinderWidth * 0.8, 300);
+            const height = Math.min(viewfinderHeight * 0.4, 200);
+            return { width, height };
+        },
         experimentalFeatures: {
-          useBarCodeDetectorIfSupported: true
+          useBarCodeDetectorIfSupported: false // Disable this as it can be flaky on some mobile browsers
         },
         supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
         formatsToSupport: [
