@@ -9,12 +9,14 @@ COPY frontend/ .
 RUN npm run build
 
 # Stage 2: Final Image
-# We ignore BUILD_FROM to force the use of the Debian-based Python image
-# which is required for building complex dependencies like pymupdf/pillow
-FROM ghcr.io/home-assistant/${BUILD_ARCH}-base-python:3.12
+# Use Debian base to ensure s6-overlay is present and avoid Alpine build issues
+FROM ghcr.io/home-assistant/${BUILD_ARCH}-base-debian:bookworm
 
-# Install system dependencies (Debian/apt)
+# Install system dependencies including Python
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-venv \
     nginx \
     libzbar0 \
     build-essential \
@@ -24,8 +26,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Install Python dependencies
+# We use --break-system-packages because this is an isolated add-on container
 COPY backend/requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 
 # Copy backend code
 COPY backend/ /app/backend/
