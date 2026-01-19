@@ -1,0 +1,22 @@
+name: Manualarr
+description: Product manual library with AI search
+version: "1.0.0"
+slug: manualarr
+arch:
+  - aarch64
+  - amd64
+  - armv7
+options:
+  log_level: info
+  max_search_results: 10
+schema:
+  log_level: list(debug|info|warning|error)
+  max_search_results: int(1,50)
+ingress: true
+ingress_port: 8080
+ingress_stream: true
+panel_icon: mdi:book-open-page-variant
+panel_title: Manuals
+map:
+  - share:rw
+  - config:ro
