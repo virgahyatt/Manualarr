@@ -7,16 +7,15 @@ COPY frontend/ .
 RUN npm run build
 
 # Stage 2: Final Image
-ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base-python:3.13-alpine3.20
+ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base-python:3.13
 FROM ${BUILD_FROM}
 
 # Install system dependencies
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     nginx \
-    libzbar \
-    zlib \
-    jpeg-dev \
-    build-base
+    libzbar0 \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set up working directory
 WORKDIR /app
