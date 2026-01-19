@@ -56,6 +56,30 @@ async def startup_event():
     print("MANUALARR BACKEND STARTED - DEBUG MODE v2")
     print("----------------------------------------------------------------")
 
+@app.post("/logs")
+async def client_logs(data: Dict[str, Any]):
+    """
+    Log client-side messages to the server console.
+    """
+    level = data.get("level", "INFO").upper()
+    message = data.get("message", "")
+    context = data.get("context", "")
+    
+    log_msg = f"CLIENT [{level}] {message}"
+    if context:
+        log_msg += f" | Context: {context}"
+    
+    if level == "ERROR":
+        logger.error(log_msg)
+    elif level == "WARNING":
+        logger.warning(log_msg)
+    else:
+        logger.info(log_msg)
+    
+    # Always print to stdout to ensure visibility in Portainer
+    print(f"STDOUT {log_msg}")
+    return {"status": "ok"}
+
 @app.get("/products/lookup")
 def lookup_product(barcode: str = Query(...)):
     """

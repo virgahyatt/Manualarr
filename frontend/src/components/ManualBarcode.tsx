@@ -13,6 +13,16 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
   const [uploading, setUploading] = useState(false)
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
 
+  // Remote logging helper to see logs in Portainer
+  const remoteLog = (message: string, level: string = 'INFO', context: any = null) => {
+    console.log(`[${level}] ${message}`, context || '');
+    axios.post('/api/logs', {
+      level,
+      message,
+      context: context ? JSON.stringify(context) : ''
+    }).catch(err => console.error("Failed to send remote log:", err));
+  }
+
   useEffect(() => {
     // Initialize scanner
     // Use a unique ID for the element
@@ -22,6 +32,8 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
     if (scannerRef.current) {
         scannerRef.current.clear().catch(console.error)
     }
+
+    remoteLog("Initializing Html5QrcodeScanner", "INFO");
 
     const scanner = new Html5QrcodeScanner(
       scannerId,
@@ -46,7 +58,7 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
     )
     scannerRef.current = scanner
 
-    console.log("Rendering scanner...")
+    remoteLog("Rendering scanner UI", "INFO");
     scanner.render(onScanSuccess, onScanFailure)
 
     return () => {
@@ -57,7 +69,8 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
   }, [])
 
   const onScanSuccess = async (decodedText: string) => {
-    console.log("Scan success:", decodedText)
+    remoteLog("Scanner detected barcode", "INFO", { barcode: decodedText });
+    
     // Stop scanning
     if (scannerRef.current) {
         scannerRef.current.pause() 
@@ -70,11 +83,13 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
         params: { barcode: decodedText }
       })
       const { brand, model } = response.data
+      remoteLog("Barcode lookup success", "INFO", { barcode: decodedText, brand, model });
       
       // Pass to parent
       onProductFound(brand || '', model || '')
       
     } catch (err) {
+      remoteLog("Barcode lookup failed", "WARNING", { barcode: decodedText, error: err });
       setError(`Product lookup failed for barcode: ${decodedText}. You may need to search manually.`)
     }
   }
@@ -83,13 +98,14 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
     // handle scan failure, usually better to ignore and keep scanning.
     // Filter out the common "No MultiFormat Readers" error to avoid console flood
     if (errorMessage?.toString().includes("No MultiFormat Readers")) {
-        // quiet failure (no code found in frame)
         return;
     }
-    console.warn("Scan failure:", errorMessage)
+    // Only log significant errors to backend
+    remoteLog("Scan failure event", "DEBUG", errorMessage);
   }
   
   const handleRestart = () => {
+      remoteLog("Restarting scanner", "INFO");
       setScanning(true)
       setError(null)
       if (scannerRef.current) {
@@ -103,7 +119,7 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
 
     setUploading(true)
     setError(null)
-    console.log("Starting file upload:", file.name)
+    remoteLog("Starting file upload scan", "INFO", { fileName: file.name });
 
     const formData = new FormData()
     formData.append('file', file)
@@ -112,30 +128,28 @@ const ManualBarcode: React.FC<ManualBarcodeProps> = ({ onProductFound }) => {
         // Safely pause scanner
         try {
             if (scannerRef.current && scanning) {
-                console.log("Pausing camera scanner...")
                 scannerRef.current.pause()
             }
         } catch (pauseErr) {
             console.warn("Failed to pause scanner (non-fatal):", pauseErr)
         }
 
-      console.log("Sending request to backend...")
       const response = await axios.post('/api/products/scan-barcode', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 30000 // 30 seconds timeout
       })
-      console.log("Response received:", response.data)
+      
       const { brand, model, barcode } = response.data
+      remoteLog("File scan result", "INFO", { barcode, brand, model });
       
       if (barcode && !brand && !model) {
           setError(`Barcode detected: ${barcode}, but no product information was found. You may need to enter details manually.`)
-          // We don't setScanning(false) here so they can try again or see the error
       } else {
           setScanning(false)
           onProductFound(brand || '', model || '')
       }
     } catch (err: any) {
-      console.error("Scan Error:", err)
+      remoteLog("File scan error", "ERROR", { error: err });
       let detail = "Could not detect barcode in image."
       
       if (err.code === 'ECONNABORTED') {
