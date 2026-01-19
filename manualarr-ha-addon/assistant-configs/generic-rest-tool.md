@@ -16,7 +16,8 @@ For any assistant that supports HTTP/REST tool calling.
 **Example Request:**
 
 ```bash
-curl "http://manualarr:8080/api/search/context?q=max+temperature&brand=Eco-Spa&limit=5"
+# Assuming you mapped port 8080 to 8081
+curl "http://homeassistant.local:8081/api/search/context?q=max+temperature&brand=Eco-Spa&limit=5"
 ```
 
 **Example Response:**

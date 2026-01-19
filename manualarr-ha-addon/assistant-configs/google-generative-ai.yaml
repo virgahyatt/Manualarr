@@ -7,34 +7,15 @@ For Google Gemini models, use this script-based approach since the built-in inte
 ```yaml
 rest_command:
   search_manuals:
-    url: "http://manualarr:8080/api/search/context"
+    url: "http://homeassistant.local:8081/api/search/context"
     method: GET
     query_params:
-      q: "{{ query }}"
-      brand: "{{ brand | default('') }}"
-      model: "{{ model | default('') }}"
-      limit: 5
-    content_type: "application/json"
-
-script:
-  search_product_manuals:
-    alias: "Search Product Manuals"
-    description: "Search indexed product manuals for information"
-    fields:
-      query:
-        description: "Search terms"
-        required: true
-        selector:
-          text:
-      brand:
-        description: "Brand filter (optional)"
-        selector:
-          text:
-    sequence:
-      - service: rest_command.search_manuals
-        data:
-          query: "{{ query }}"
-          brand: "{{ brand | default('') }}"
+...
 ```
+
+## Setup
+
+1.  **Expose Port:** Map container port `8080` to host port `8081` in the Add-on Configuration (Network).
+2.  **Update URL:** Replace `http://homeassistant.local:8081` with your HA IP and mapped port.
 
 Expose the `script.search_product_manuals` to your Google Generative AI assistant.

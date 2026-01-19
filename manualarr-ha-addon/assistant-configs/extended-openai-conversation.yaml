@@ -32,7 +32,7 @@ functions:
           - query
     function:
       type: rest
-      resource: http://homeassistant.local:8123/api/hassio_ingress/manualarr/api/search/context
+      resource: http://homeassistant.local:8081/api/search/context
       method: GET
       value_template: >-
         {% set params = {"q": query, "limit": 5} %}
@@ -41,4 +41,12 @@ functions:
         {{ params | to_json }}
 ```
 
-**Note:** Replace `http://homeassistant.local:8123/api/hassio_ingress/manualarr/api/search/context` with the actual ingress URL if different. For internal add-on-to-add-on communication, you might use `http://manualarr:8080/api/search/context`.
+## Important Setup Steps
+
+1.  **Expose the Port:**
+    - Go to **Settings** > **Add-ons** > **Manualarr** > **Configuration**.
+    - In the **Network** section, map port `8080` to a host port (e.g., `8081`).
+    - Save and restart the add-on.
+
+2.  **Update URL:**
+    - Replace `http://homeassistant.local:8081` in the configuration above with your Home Assistant IP/hostname and the mapped port (e.g., `8081`).
