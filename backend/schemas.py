@@ -17,6 +17,15 @@ class ManualCreate(ManualBase):
     """
 
 
+class ManualUpdate(BaseModel):
+    """
+    Schema for updating a Manual.
+    """
+    brand: Optional[str] = None
+    model: Optional[str] = None
+    filename: Optional[str] = None
+
+
 class Manual(ManualBase):
     """
     Schema for reading Manual data.

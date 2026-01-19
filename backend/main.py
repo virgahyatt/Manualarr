@@ -273,6 +273,46 @@ def list_manuals(skip: int = 0, limit: int = 100, db: Session = Depends(get_db))
     manuals = db.query(models.Manual).offset(skip).limit(limit).all()
     return manuals
 
+@app.patch("/manuals/{manual_id}", response_model=schemas.Manual)
+def update_manual(manual_id: int, manual_update: schemas.ManualUpdate, db: Session = Depends(get_db)):
+    """
+    Update a manual's metadata and/or filename.
+    """
+    db_manual = db.query(models.Manual).filter(models.Manual.id == manual_id).first()
+    if not db_manual:
+        raise HTTPException(status_code=404, detail="Manual not found")
+
+    if manual_update.brand is not None:
+        db_manual.brand = manual_update.brand
+    if manual_update.model is not None:
+        db_manual.model = manual_update.model
+
+    if manual_update.filename is not None and manual_update.filename != db_manual.filename:
+        # Handle rename
+        new_filename = os.path.basename(manual_update.filename)
+        # Ensure extension consistency if user forgot it
+        if db_manual.filename.lower().endswith('.pdf') and not new_filename.lower().endswith('.pdf'):
+             new_filename += ".pdf"
+
+        new_filepath = os.path.join(UPLOAD_DIR, new_filename)
+        
+        if os.path.exists(new_filepath):
+             raise HTTPException(status_code=400, detail="Filename already exists")
+        
+        # Rename on disk
+        try:
+            os.rename(db_manual.filepath, new_filepath)
+        except OSError as e:
+            logger.error(f"Failed to rename file: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to rename file: {str(e)}")
+            
+        db_manual.filename = new_filename
+        db_manual.filepath = new_filepath
+
+    db.commit()
+    db.refresh(db_manual)
+    return db_manual
+
 @app.delete("/manuals/{manual_id}")
 def delete_manual(manual_id: int, db: Session = Depends(get_db)):
     """
