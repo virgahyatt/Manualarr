@@ -17,8 +17,12 @@ import models
 import schemas
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO))
 logger = logging.getLogger(__name__)
+
+# Max search results for LLM
+MAX_SEARCH_RESULTS = int(os.getenv("MAX_SEARCH_RESULTS", "10"))
 
 # Ensure database directory exists if using SQLite with a path
 if engine.url.drivername == 'sqlite':
@@ -340,16 +344,31 @@ def delete_manual(manual_id: int, db: Session = Depends(get_db)):
     return {"message": "Manual deleted successfully"}
 
 @app.get("/search/context")
+
 def search_context(
+
     q: str = Query(..., min_length=3),
+
     brand: Optional[str] = Query(None),
+
     model: Optional[str] = Query(None),
-    limit: int = 10,
+
+    limit: Optional[int] = Query(None),
+
     db: Session = Depends(get_db)
+
 ):
+
     """
+
     Search manual content for LLM context retrieval.
+
     Returns snippets of matching text.
+
     """
-    results = indexer.search(db, q, brand, model, limit)
+
+    search_limit = limit if limit is not None else MAX_SEARCH_RESULTS
+
+    results = indexer.search(db, q, brand, model, search_limit)
+
     return results
