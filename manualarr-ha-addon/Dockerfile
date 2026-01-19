@@ -1,3 +1,5 @@
+ARG BUILD_ARCH=amd64
+
 # Stage 1: Build Frontend
 FROM node:20-alpine AS frontend-build
 WORKDIR /app
@@ -7,10 +9,11 @@ COPY frontend/ .
 RUN npm run build
 
 # Stage 2: Final Image
-ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base-python:3.13
-FROM ${BUILD_FROM}
+# We ignore BUILD_FROM to force the use of the Debian-based Python image
+# which is required for building complex dependencies like pymupdf/pillow
+FROM ghcr.io/home-assistant/${BUILD_ARCH}-base-python:3.13
 
-# Install system dependencies
+# Install system dependencies (Debian/apt)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nginx \
     libzbar0 \
