@@ -36,9 +36,17 @@ Use this configuration with the [Extended OpenAI Conversation](https://github.co
         - query
   function:
     type: rest
-    resource: >-
-      http://homeassistant.local:8081/api/search/context?q={{ query|urlencode }}&brand={{ brand|default('')|urlencode }}&model={{ model|default('')|urlencode }}&limit=5
-    method: GET
+    resource: http://homeassistant.local:8081/api/search/context
+    method: POST
+    value_template: >-
+      {{
+        {
+          "q": query,
+          "brand": brand | default(None),
+          "model": model | default(None),
+          "limit": 5
+        } | to_json
+      }}
 ```
 
 ### JSON Version (Alternative)
@@ -61,8 +69,9 @@ If the YAML version causes issues with the validator, use this JSON version:
   },
   "function": {
     "type": "rest",
-    "resource": "http://homeassistant.local:8081/api/search/context?q={{ query|urlencode }}&brand={{ brand|default('')|urlencode }}&model={{ model|default('')|urlencode }}&limit=5",
-    "method": "GET"
+    "resource": "http://homeassistant.local:8081/api/search/context",
+    "method": "POST",
+    "value_template": "{{ {\"q\": query, \"brand\": brand|default(None), \"model\": model|default(None), \"limit\": 5} | to_json }}"
   }
 }
 ```
