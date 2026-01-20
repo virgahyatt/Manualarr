@@ -36,9 +36,8 @@ If the YAML version causes issues with the validator, use this JSON version:
   },
   "function": {
     "type": "rest",
-    "resource": "http://homeassistant.local:8081/api/search/context",
-    "method": "GET",
-    "value_template": "{% set params = {\"q\": query, \"limit\": 5} %}{% if brand is defined and brand %}{% set _ = params.update({\"brand\": brand}) %}{% endif %}{% if model is defined and model %}{% set _ = params.update({\"model\": model}) %}{% endif %}{{ params | to_json }}"
+    "resource": "http://homeassistant.local:8081/api/search/context?q={{ query|urlencode }}&brand={{ brand|default('')|urlencode }}&model={{ model|default('')|urlencode }}&limit=5",
+    "method": "GET"
   }
 }
 ```
