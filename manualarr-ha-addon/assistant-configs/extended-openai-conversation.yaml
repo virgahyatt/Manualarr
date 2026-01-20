@@ -38,6 +38,8 @@ Use this configuration with the [Extended OpenAI Conversation](https://github.co
     type: rest
     resource: http://homeassistant.local:8081/api/search/context
     method: POST
+    headers:
+      Content-Type: application/json
     value_template: >-
       {{
         {
@@ -71,6 +73,7 @@ If the YAML version causes issues with the validator, use this JSON version:
     "type": "rest",
     "resource": "http://homeassistant.local:8081/api/search/context",
     "method": "POST",
+    "headers": { "Content-Type": "application/json" },
     "value_template": "{{ {\"q\": query, \"brand\": brand|default(None), \"model\": model|default(None), \"limit\": 5} | to_json }}"
   }
 }
