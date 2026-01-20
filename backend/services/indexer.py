@@ -9,10 +9,13 @@ class IndexerService:
         """
         try:
             doc = fitz.open(file_path)
+            print(f"Indexing manual {manual_id}: {file_path}")
             
             # Clear existing index for this manual
             db.execute(text("DELETE FROM manual_fts WHERE manual_id = :mid"), {"mid": manual_id})
             
+            pages_indexed = 0
+            total_chars = 0
             for page_num, page in enumerate(doc):
                 content = page.get_text()
                 if content.strip():
@@ -20,9 +23,14 @@ class IndexerService:
                         text("INSERT INTO manual_fts (manual_id, page_number, content) VALUES (:mid, :pn, :content)"),
                         {"mid": manual_id, "pn": page_num + 1, "content": content}
                     )
+                    pages_indexed += 1
+                    total_chars += len(content)
             
             db.commit()
             doc.close()
+            print(f"Successfully indexed manual {manual_id}: {pages_indexed} pages, {total_chars} characters.")
+            if total_chars == 0:
+                print(f"WARNING: No text extracted from manual {manual_id}. Is it a scanned image?")
             return True
         except Exception as e:
             print(f"Indexing failed for manual {manual_id}: {e}")
@@ -36,14 +44,20 @@ class IndexerService:
         """
         Search for text snippets. Optionally filter by brand/model.
         """
-        # Format query for FTS5 (simple word AND join)
-        # Remove special chars that might break syntax
-        clean_query = ''.join(e for e in query if e.isalnum() or e.isspace())
-        fts_query = ' AND '.join(clean_query.split())
-        
-        if not fts_query:
+        # Try precise search (AND) first, then fallback to loose search (OR)
+        words = ''.join(e for e in query if e.isalnum() or e.isspace()).split()
+        if not words:
             return []
 
+        results = self._execute_search(db, ' AND '.join(words), brand, model, limit)
+        
+        if not results and len(words) > 1:
+            print(f"No results for precise search '{query}', trying loose search...")
+            results = self._execute_search(db, ' OR '.join(words), brand, model, limit)
+            
+        return results
+
+    def _execute_search(self, db: Session, fts_query: str, brand: str, model: str, limit: int):
         sql = """
             SELECT 
                 m.id as manual_id,
@@ -60,7 +74,6 @@ class IndexerService:
         params = {"query": fts_query}
         
         # Use fuzzy matching for brand/model (strip hyphens and spaces)
-        # This allows "ecoworthy" to match "Eco-Worthy" or "Eco Worthy"
         if brand and brand.strip():
             clean_brand = ''.join(e for e in brand if e.isalnum())
             if clean_brand:
@@ -76,5 +89,8 @@ class IndexerService:
         sql += " ORDER BY rank LIMIT :limit"
         params["limit"] = limit
         
+        print(f"Executing search: FTS='{fts_query}' Brand='{brand}' Model='{model}'")
         result = db.execute(text(sql), params)
-        return [dict(row._mapping) for row in result]
+        rows = [dict(row._mapping) for row in result]
+        print(f"Search found {len(rows)} results.")
+        return rows
