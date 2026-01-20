@@ -65,7 +65,7 @@ class IndexerService:
                 m.model,
                 m.filename,
                 fts.page_number,
-                snippet(manual_fts, 2, '<b>', '</b>', '...', 64) as snippet
+                snippet(manual_fts, 2, '<b>', '</b>', '...', 128) as snippet
             FROM manual_fts fts
             JOIN manuals m ON m.id = fts.manual_id
             WHERE manual_fts MATCH :query
