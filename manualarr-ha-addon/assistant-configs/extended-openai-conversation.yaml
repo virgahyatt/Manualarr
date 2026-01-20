@@ -37,7 +37,7 @@ Use this configuration with the [Extended OpenAI Conversation](https://github.co
   function:
     type: rest
     resource_template: >-
-      http://homeassistant.local:8081/api/search/context?q={{ query|urlencode }}&brand={{ brand|default('')|urlencode }}&model={{ model|default('')|urlencode }}&limit=5
+      http://homeassistant.local:8081/api/search/context?q={{ query|urlencode }}&brand={{ brand|default('')|urlencode }}&model={{ model|default('')|urlencode }}&limit=10
     method: GET
 ```
 
@@ -61,7 +61,7 @@ If the YAML version causes issues with the validator, use this JSON version:
   },
   "function": {
     "type": "rest",
-    "resource_template": "http://homeassistant.local:8081/api/search/context?q={{ query|urlencode }}&brand={{ brand|default('')|urlencode }}&model={{ model|default('')|urlencode }}&limit=5",
+    "resource_template": "http://homeassistant.local:8081/api/search/context?q={{ query|urlencode }}&brand={{ brand|default('')|urlencode }}&model={{ model|default('')|urlencode }}&limit=10",
     "method": "GET"
   }
 }
