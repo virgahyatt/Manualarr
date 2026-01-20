@@ -2,20 +2,37 @@
 
 Use this configuration with the [Extended OpenAI Conversation](https://github.com/jekalmin/extended_openai_conversation) integration in Home Assistant.
 
-## Configuration
+## Step 3: Configure the Tool
 
-**Append** the following block to the **Functions** text area in the integration configuration. 
+In Extended OpenAI Conversation **Functions** box, append these tools.
 
-> **Note:** Home Assistant may show a warning saying *"It appears you may be writing YAML into this template field"*. You can safely **ignore this warning** and click Submit.
+### Recommended System Prompt
+Add this to the **Prompt** field at the top of the integration configuration:
+```text
+You have access to the user's product manual library. When searching or listing manuals, the "brand" and "model" fields represent the actual products the user owns. Use these fields as the authoritative source for identifying the user's equipment.
+```
 
-### YAML Version
+### YAML Version (Recommended)
 ```yaml
+- spec:
+    name: list_manuals
+    description: >-
+      List all product manuals the user has indexed. Use this to see what 
+      products the user owns or when they ask "what devices do I have?".
+    parameters:
+      type: object
+      properties: {}
+  function:
+    type: rest
+    resource: http://homeassistant.local:8081/api/manuals/
+    method: GET
+
 - spec:
     name: search_manuals
     description: >-
-      Search product manuals for specifications, instructions, troubleshooting,
-      or any other information. Use this when the user asks about their devices,
-      appliances, equipment, or products they own.
+      Search the contents of the user's product manuals for specifications, 
+      instructions, or troubleshooting. The results include the verified 
+      brand and model of the product.
     parameters:
       type: object
       properties:
@@ -41,30 +58,42 @@ Use this configuration with the [Extended OpenAI Conversation](https://github.co
     method: GET
 ```
 
-### JSON Version (Alternative)
-If the YAML version causes issues with the validator, use this JSON version:
-
+### JSON Version
 ```json
-{
-  "spec": {
-    "name": "search_manuals",
-    "description": "Search product manuals for specifications, instructions, troubleshooting, or any other information.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "query": { "type": "string", "description": "Search terms" },
-        "brand": { "type": "string", "description": "Optional brand" },
-        "model": { "type": "string", "description": "Optional model" }
-      },
-      "required": ["query"]
+[
+  {
+    "spec": {
+      "name": "list_manuals",
+      "description": "List all product manuals the user has indexed.",
+      "parameters": { "type": "object", "properties": {} }
+    },
+    "function": {
+      "type": "rest",
+      "resource": "http://homeassistant.local:8081/api/manuals/",
+      "method": "GET"
     }
   },
-  "function": {
-    "type": "rest",
-    "resource_template": "http://homeassistant.local:8081/api/search/context?q={{ query|urlencode }}&brand={{ brand|default('')|urlencode }}&model={{ model|default('')|urlencode }}&limit=10",
-    "method": "GET"
+  {
+    "spec": {
+      "name": "search_manuals",
+      "description": "Search product manuals for specifications or troubleshooting. Results include verified brand and model.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": { "type": "string", "description": "Search terms" },
+          "brand": { "type": "string", "description": "Optional brand" },
+          "model": { "type": "string", "description": "Optional model" }
+        },
+        "required": ["query"]
+      }
+    },
+    "function": {
+      "type": "rest",
+      "resource_template": "http://homeassistant.local:8081/api/search/context?q={{ query|urlencode }}&brand={{ brand|default('')|urlencode }}&model={{ model|default('')|urlencode }}&limit=10",
+      "method": "GET"
+    }
   }
-}
+]
 ```
 
 ## Important Setup Steps
