@@ -372,3 +372,29 @@ def search_context(
     results = indexer.search(db, q, brand, model, search_limit)
 
     return results
+
+
+
+@app.post("/search/context")
+
+def search_context_post(
+
+    query: schemas.SearchQuery,
+
+    db: Session = Depends(get_db)
+
+):
+
+    """
+
+    Search manual content (POST version for LLM tools).
+
+    """
+
+    search_limit = query.limit if query.limit is not None else MAX_SEARCH_RESULTS
+
+    results = indexer.search(db, query.q, query.brand, query.model, search_limit)
+
+    return results
+
+

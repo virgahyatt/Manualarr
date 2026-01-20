@@ -57,3 +57,12 @@ class ManualImport(BaseModel):
     model: Optional[str] = None
     url: str
     filename: Optional[str] = None # Optional, can be derived from URL
+
+class SearchQuery(BaseModel):
+    """
+    Search parameters for manual content.
+    """
+    q: str
+    brand: Optional[str] = None
+    model: Optional[str] = None
+    limit: int = 10
