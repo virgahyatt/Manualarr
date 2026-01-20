@@ -1,38 +1,12 @@
-# Extended OpenAI Conversation - Reliable Setup
+# Extended OpenAI Conversation Template
 
-The most robust way to integrate Manualarr is to define a **REST Command** in your Home Assistant configuration and then expose it as a tool. This avoids template rendering issues within the integration.
+Use this configuration with the [Extended OpenAI Conversation](https://github.com/jekalmin/extended_openai_conversation) integration in Home Assistant.
 
-## Step 1: Add to configuration.yaml
+## Configuration
 
-Add the following to your `configuration.yaml` file (using File Editor or Studio Code Server):
+**Append** the following block to the **Functions** text area in the integration configuration. 
 
-```yaml
-rest_command:
-  search_manuals:
-    url: "http://10.101.2.11:8081/api/search/context"
-    method: POST
-    headers:
-      Content-Type: application/json
-    payload: >-
-      {{
-        {
-          "q": query,
-          "brand": brand | default(None),
-          "model": model | default(None),
-          "limit": 5
-        } | to_json
-      }}
-```
-
-**Note:** Replace `http://10.101.2.11:8081` with your actual Home Assistant IP and the mapped port.
-
-## Step 2: Restart Home Assistant
-
-Restart to load the new command.
-
-## Step 3: Configure the Tool
-
-In Extended OpenAI Conversation **Functions** box, use this configuration to call the command:
+> **Note:** Home Assistant may show a warning saying *"It appears you may be writing YAML into this template field"*. You can safely **ignore this warning** and click Submit.
 
 ### YAML Version
 ```yaml
@@ -61,16 +35,15 @@ In Extended OpenAI Conversation **Functions** box, use this configuration to cal
       required:
         - query
   function:
-    type: script
-    sequence:
-      - service: rest_command.search_manuals
-        data:
-          query: "{{ query }}"
-          brand: "{{ brand }}"
-          model: "{{ model }}"
+    type: rest
+    resource_template: >-
+      http://homeassistant.local:8081/api/search/context?q={{ query|urlencode }}&brand={{ brand|default('')|urlencode }}&model={{ model|default('')|urlencode }}&limit=5
+    method: GET
 ```
 
-### JSON Version
+### JSON Version (Alternative)
+If the YAML version causes issues with the validator, use this JSON version:
+
 ```json
 {
   "spec": {
@@ -87,17 +60,19 @@ In Extended OpenAI Conversation **Functions** box, use this configuration to cal
     }
   },
   "function": {
-    "type": "script",
-    "sequence": [
-      {
-        "service": "rest_command.search_manuals",
-        "data": {
-          "query": "{{ query }}",
-          "brand": "{{ brand }}",
-          "model": "{{ model }}"
-        }
-      }
-    ]
+    "type": "rest",
+    "resource_template": "http://homeassistant.local:8081/api/search/context?q={{ query|urlencode }}&brand={{ brand|default('')|urlencode }}&model={{ model|default('')|urlencode }}&limit=5",
+    "method": "GET"
   }
 }
 ```
+
+## Important Setup Steps
+
+1.  **Expose the Port:**
+    - Go to **Settings** > **Add-ons** > **Manualarr** > **Configuration**.
+    - In the **Network** section, map port `8080` to a host port (e.g., `8081`).
+    - Save and restart the add-on.
+
+2.  **Update URL:**
+    - Replace `http://homeassistant.local:8081` in the configuration above with your Home Assistant IP/hostname and the mapped port (e.g., `8081`).
