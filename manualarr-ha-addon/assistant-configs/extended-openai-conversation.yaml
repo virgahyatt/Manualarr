@@ -37,9 +37,12 @@ Use this configuration with the [Extended OpenAI Conversation](https://github.co
   function:
     type: rest
     resource: http://homeassistant.local:8081/api/search/context
-    method: POST
-    headers:
-      Content-Type: application/json
+    method: GET
+    params:
+      q: "{{ query }}"
+      brand: "{{ brand | default('') }}"
+      model: "{{ model | default('') }}"
+      limit: 5
 ```
 
 ### JSON Version (Alternative)
@@ -63,8 +66,13 @@ If the YAML version causes issues with the validator, use this JSON version:
   "function": {
     "type": "rest",
     "resource": "http://homeassistant.local:8081/api/search/context",
-    "method": "POST",
-    "headers": { "Content-Type": "application/json" }
+    "method": "GET",
+    "params": {
+      "q": "{{ query }}",
+      "brand": "{{ brand|default('') }}",
+      "model": "{{ model|default('') }}",
+      "limit": 5
+    }
   }
 }
 ```
