@@ -37,6 +37,23 @@ init_fts(engine)
 
 app = FastAPI(title="Manualarr API")
 
+# Debugging Middleware to inspect request body
+from fastapi import Request
+import json
+
+@app.middleware("http")
+async def log_request_body(request: Request, call_next):
+    if request.method == "POST" and request.url.path.endswith("/search/context"):
+        body = await request.body()
+        print(f"DEBUG: Request Body: {body.decode('utf-8')}")
+        # Re-populate body so it can be read again
+        async def receive():
+            return {"type": "http.request", "body": body}
+        request._receive = receive
+        
+    response = await call_next(request)
+    return response
+
 # Configure uploads directory
 UPLOAD_DIR = os.getenv("UPLOAD_DIR")
 if not UPLOAD_DIR:
