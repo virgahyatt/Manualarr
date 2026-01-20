@@ -74,13 +74,16 @@ class IndexerService:
         params = {"query": fts_query}
         
         # Use fuzzy matching for brand/model (strip hyphens and spaces)
-        if brand and brand.strip():
+        # We also check for common "null" strings that LLMs might pass
+        null_strings = ['none', 'null', 'undefined', '']
+        
+        if brand and brand.strip() and brand.lower().strip() not in null_strings:
             clean_brand = ''.join(e for e in brand if e.isalnum())
             if clean_brand:
                 sql += " AND REPLACE(REPLACE(m.brand, '-', ''), ' ', '') LIKE :brand"
                 params["brand"] = f"%{clean_brand}%"
             
-        if model and model.strip():
+        if model and model.strip() and model.lower().strip() not in null_strings:
             clean_model = ''.join(e for e in model if e.isalnum())
             if clean_model:
                 sql += " AND REPLACE(REPLACE(m.model, '-', ''), ' ', '') LIKE :model"
