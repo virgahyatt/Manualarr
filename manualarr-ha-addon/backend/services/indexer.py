@@ -59,15 +59,19 @@ class IndexerService:
         
         params = {"query": fts_query}
         
-        # Use LIKE for case-insensitive matching if the DB is configured that way, 
-        # or just be more flexible.
+        # Use fuzzy matching for brand/model (strip hyphens and spaces)
+        # This allows "ecoworthy" to match "Eco-Worthy" or "Eco Worthy"
         if brand and brand.strip():
-            sql += " AND m.brand LIKE :brand"
-            params["brand"] = f"%{brand.strip()}%"
+            clean_brand = ''.join(e for e in brand if e.isalnum())
+            if clean_brand:
+                sql += " AND REPLACE(REPLACE(m.brand, '-', ''), ' ', '') LIKE :brand"
+                params["brand"] = f"%{clean_brand}%"
             
         if model and model.strip():
-            sql += " AND m.model LIKE :model"
-            params["model"] = f"%{model.strip()}%"
+            clean_model = ''.join(e for e in model if e.isalnum())
+            if clean_model:
+                sql += " AND REPLACE(REPLACE(m.model, '-', ''), ' ', '') LIKE :model"
+                params["model"] = f"%{clean_model}%"
             
         sql += " ORDER BY rank LIMIT :limit"
         params["limit"] = limit
