@@ -36,10 +36,14 @@ class IndexerService:
         """
         Search for text snippets. Optionally filter by brand/model.
         """
-        # Base query using FTS
-        # We need to JOIN with manuals table to filter by brand/model
-        # But manual_fts is a virtual table. Standard JOIN works.
+        # Format query for FTS5 (simple word AND join)
+        # Remove special chars that might break syntax
+        clean_query = ''.join(e for e in query if e.isalnum() or e.isspace())
+        fts_query = ' AND '.join(clean_query.split())
         
+        if not fts_query:
+            return []
+
         sql = """
             SELECT 
                 m.id as manual_id,
@@ -53,15 +57,15 @@ class IndexerService:
             WHERE manual_fts MATCH :query
         """
         
-        params = {"query": query}
+        params = {"query": fts_query}
         
-        if brand:
-            sql += " AND m.brand = :brand"
-            params["brand"] = brand
+        if brand and brand.strip():
+            sql += " AND m.brand LIKE :brand"
+            params["brand"] = f"%{brand.strip()}%"
             
-        if model:
-            sql += " AND m.model = :model"
-            params["model"] = model
+        if model and model.strip():
+            sql += " AND m.model LIKE :model"
+            params["model"] = f"%{model.strip()}%"
             
         sql += " ORDER BY rank LIMIT :limit"
         params["limit"] = limit
