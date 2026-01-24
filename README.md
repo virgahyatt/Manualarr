@@ -2,13 +2,15 @@
 
 **Manualarr** is a self-hosted web application designed to store, organize, and retrieve user manuals for appliances and products. It runs on Docker (target: Asustor 6604T) and features automated manual discovery and an LLM-friendly API.
 
-## Core Features
-- **Centralized Storage**: Store and manage PDF manuals locally.
-- **Manual Upload**: Support for direct file uploads.
-- **Web Interface**: Clean, responsive UI for managing your library.
-- **API**: RESTful API for integration.
+## Features
 
-*(Upcoming: Auto-Discovery, Barcode Scanning, LLM Search)*
+- **Semantic Search (RAG):** Uses local embeddings (`fastembed`) to understand the meaning of your queries, not just keywords.
+- **Hybrid Search Engine:** Combines SQLite FTS5 with vector similarity for high-precision results.
+- **Privacy First:** All embedding generation and searching happens locally on your hardware.
+- **Barcode Scanning:** Automatically identify products from photos of barcodes.
+- **Home Assistant Integration:** Built-in support for Home Assistant's Assist via a custom tool.
+- **Mobile Friendly:** Simple UI for uploading and searching manuals on the go.
+
 
 ## Installation (Docker)
 

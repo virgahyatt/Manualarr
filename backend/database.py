@@ -30,7 +30,6 @@ def get_db():
 def init_fts(db_engine):
     with db_engine.connect() as conn:
         # Create FTS table for full-text search
-        # manual_id and page_number are unindexed (stored but not searchable themselves via FTS match syntax effectively, or just kept for reference)
         conn.execute(text("""
             CREATE VIRTUAL TABLE IF NOT EXISTS manual_fts USING fts5(
                 manual_id UNINDEXED, 
@@ -38,5 +37,21 @@ def init_fts(db_engine):
                 content
             );
         """))
+        
+        # Create table for vector embeddings and chunks
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS manual_embeddings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                manual_id INTEGER,
+                page_number INTEGER,
+                chunk_index INTEGER,
+                content TEXT,
+                embedding BLOB,
+                FOREIGN KEY (manual_id) REFERENCES manuals (id) ON DELETE CASCADE
+            );
+        """))
+        # Index for faster lookup by manual_id
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_embeddings_manual_id ON manual_embeddings (manual_id);"))
+
         # Create trigger to clean up FTS when manual is deleted?
         # SQLite FTS doesn't support foreign keys. We handle deletion manually in service.

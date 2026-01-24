@@ -8,3 +8,5 @@ pymupdf
 internetarchive
 pyzbar
 pillow
+fastembed
+numpy
